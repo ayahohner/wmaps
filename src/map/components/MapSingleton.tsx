@@ -23,7 +23,7 @@ import {
 } from "../../state/State";
 
 import { SelectionHandler } from "./SelectionHandler";
-import { ComponentT } from "./types";
+import { ComponentT, LineT } from "./types";
 
 class MapSingleton extends Application {
   static _instance: MapSingleton;
@@ -200,15 +200,23 @@ class MapSingleton extends Application {
   /**
    * Manual hit test: Pixi v8 removed `renderer.plugins.interaction.hitTest`,
    * so find the topmost component (by zIndex, then child order) whose bounds
-   * contain the point.
+   * contain the point. Connection lines are excluded: their nodeKey is an
+   * edge key (e.g. "A->B"), not a node, and their rectangular bounds would
+   * otherwise swallow clicks on empty space.
    */
   private hitTest(p: Point): ComponentT | undefined {
-    const children = [...this.graphContainer.children].sort(
-      (a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0)
-    );
-    for (const child of children) {
+    // Highest zIndex first; on ties prefer later siblings, matching Pixi's
+    // paint order (later siblings render on top).
+    const ranked = this.graphContainer.children
+      .map((child, index) => ({ child, index }))
+      .sort(
+        (a, b) =>
+          (b.child.zIndex ?? 0) - (a.child.zIndex ?? 0) || b.index - a.index
+      );
+    for (const { child } of ranked) {
       const component = child as ComponentT;
       if (component.nodeKey === undefined) continue;
+      if ((component as unknown as LineT).updateLine !== undefined) continue;
       const bounds = component.getBounds();
       if (
         p.x >= bounds.x &&
@@ -278,26 +286,29 @@ class MapSingleton extends Application {
 
   // Resize container on window resize
   // (manually place throughout app because ResizerObserver makes flashes)
-  // Note: the renderer itself auto-resizes via the `resizeTo` init option,
-  // so here we only need to rerender the graph.
   handleResize = throttle(() => {
+    // The renderer's `resizeTo` only reacts to window resize events, but the
+    // panel resizer changes the container's CSS size directly, so resize the
+    // renderer explicitly here before rerendering against the new bounds.
+    // (This is what the old `this.resize()` call did; in Pixi v8 `resize`
+    // is assigned dynamically by the ResizePlugin and isn't in the types,
+    // so call `renderer.resize` directly.)
+    const parent = MapSingleton._parentElement;
+    this.renderer.resize(parent.clientWidth, parent.clientHeight);
     rerenderGraph();
   }, 32);
 
   wardleyToRendererCoords(x: number, y: number) {
-    return [
-      ((x / 100) * this.screen.width) / this.renderer.resolution,
-      ((1 - y / 100) * this.screen.height) / this.renderer.resolution,
-    ];
+    // `screen` is already in logical (CSS) pixels even with resolution > 1,
+    // so no density adjustment is needed (unlike the old `renderer.width`,
+    // which was in physical pixels).
+    return [(x / 100) * this.screen.width, (1 - y / 100) * this.screen.height];
   }
 
   rendererToWardleyCoords(x: number, y: number) {
     return [
-      ((1 / this.screen.width) * this.renderer.resolution * x * 100).toFixed(1),
-      (
-        100 -
-        (1 / this.screen.height) * this.renderer.resolution * y * 100
-      ).toFixed(1),
+      ((x / this.screen.width) * 100).toFixed(1),
+      (100 - (y / this.screen.height) * 100).toFixed(1),
     ];
   }
 }
