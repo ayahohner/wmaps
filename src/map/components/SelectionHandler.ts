@@ -12,19 +12,17 @@ export const SelectionHandler = () => {
       state.selectDrag.selectionStartPoint &&
       state.selectDrag.selectionCurrentPoint
     ) {
-      component
-        .clear()
-        .lineStyle(1, 0x4597f7)
-        .beginFill(0x4597f7, 0.1)
-        .drawRect(
-          0,
-          0,
-          state.selectDrag.selectionCurrentPoint.x -
-            state.selectDrag.selectionStartPoint.x,
-          state.selectDrag.selectionCurrentPoint.y -
-            state.selectDrag.selectionStartPoint.y
-        )
-        .endFill();
+      component.clear();
+      component.rect(
+        0,
+        0,
+        state.selectDrag.selectionCurrentPoint.x -
+          state.selectDrag.selectionStartPoint.x,
+        state.selectDrag.selectionCurrentPoint.y -
+          state.selectDrag.selectionStartPoint.y
+      );
+      component.fill({ color: 0x4597f7, alpha: 0.1 });
+      component.stroke({ width: 1, color: 0x4597f7, alpha: 1 });
       component.x = state.selectDrag.selectionStartPoint.x;
       component.y = state.selectDrag.selectionStartPoint.y;
       component.visible = true;

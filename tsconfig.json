@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "jsx": "react-jsx",
     "sourceMap": true,
@@ -11,6 +11,10 @@
     "lib": [
       "esnext",
       "dom"
+    ],
+    "types": [
+      "node",
+      "vite/client"
     ]
   },
   "include": [

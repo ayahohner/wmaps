@@ -1,9 +1,8 @@
-import { Graphics, DisplayObject, Ticker } from "pixi.js";
+import { Graphics, Ticker } from "pixi.js";
 
-export type ExtendedGraphics = Graphics &
-  DisplayObject & {
-    nodeKey: string;
-  };
+export type ExtendedGraphics = Graphics & {
+  nodeKey: string;
+};
 
 export type ComponentT = ExtendedGraphics;
 

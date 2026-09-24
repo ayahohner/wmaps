@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { Dialog, Disclosure, Menu, Transition } from "@headlessui/react";
+import { Dialog, Disclosure, Menu, Transition, TransitionChild } from "@headlessui/react";
 import {
   Bars3Icon,
   BellIcon,
@@ -75,7 +75,7 @@ export const ProjectMenu = () => {
               {/* Left Menu */}
               <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                 {/* logo */}
-                <div className="flex flex-shrink-0 items-center">
+                <div className="flex shrink-0 items-center">
                   <span className="block h-8 w-auto text-3xl leading-none select-none align-bottom">
                     🤗
                   </span>
@@ -136,7 +136,7 @@ export const ProjectMenu = () => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
                       <Menu.Item>
                         {({ active }) => (
                           <a
@@ -189,13 +189,13 @@ export const ProjectMenu = () => {
           </Disclosure.Panel>
 
           {/* Help Dialog Box */}
-          <Transition.Root show={isOpen} as={Fragment}>
+          <Transition show={isOpen} as={Fragment}>
             <Dialog
               as="div"
               className="relative z-10"
               onClose={() => handleClose()}
             >
-              <Transition.Child
+              <TransitionChild
                 as={Fragment}
                 enter="ease-out duration-300"
                 enterFrom="opacity-0"
@@ -204,12 +204,12 @@ export const ProjectMenu = () => {
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
+                <div className="fixed inset-0 bg-gray-500/75 transition-opacity" />
+              </TransitionChild>
 
               <div className="fixed inset-0 z-10 overflow-y-auto">
                 <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                  <Transition.Child
+                  <TransitionChild
                     as={Fragment}
                     enter="ease-out duration-300"
                     enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -291,11 +291,11 @@ export const ProjectMenu = () => {
                         </button>
                       </div>
                     </Dialog.Panel>
-                  </Transition.Child>
+                  </TransitionChild>
                 </div>
               </div>
             </Dialog>
-          </Transition.Root>
+          </Transition>
         </>
       )}
     </Disclosure>

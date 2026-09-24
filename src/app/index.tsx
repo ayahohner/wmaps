@@ -1,4 +1,4 @@
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import MapSingleton from "../map/components/MapSingleton";
 
@@ -33,20 +33,24 @@ initializeHistoryMonkeypatch();
 
 initializeUserEvents();
 
-const run = (elementId: string) => {
+const run = async (elementId: string) => {
+  // Pixi v8 initializes asynchronously; wait for it before touching the
+  // renderer or appending the canvas.
+  await MapSingleton.ready;
+
   initializePanelResizer(document.getElementById("editorContainer"));
 
   setEditorText(editorView.state.doc.toString());
 
   // Bind app view to root html element
-  document.getElementById(elementId)?.appendChild(MapSingleton.view);
+  document.getElementById(elementId)?.appendChild(MapSingleton.canvas);
 
   MapSingleton.handleResize();
 
   // Render once even if graph is empty
   MapSingleton.dirty = true;
+
+  createRoot(document.getElementById("projectMenu")!).render(<ProjectMenu />);
 };
 
 run("map");
-
-ReactDOM.render(<ProjectMenu />, document.getElementById("projectMenu"));
