@@ -23,26 +23,38 @@ import {
 } from "../../state/State";
 
 import { SelectionHandler } from "./SelectionHandler";
-
-// @ts-ignore
-Application.prototype.render = null; // Disable auto-rendering by removing the function
+import { ComponentT, LineT } from "./types";
 
 class MapSingleton extends Application {
   static _instance: MapSingleton;
-  static _parentElement: HTMLDivElement = document.getElementById(
-    "map"
-  ) as HTMLDivElement;
+  static _parentElement: HTMLDivElement;
+
+  /** Resolves once the Pixi application has been initialized. */
+  readonly ready!: Promise<void>;
+
   renderIndicator = new RenderIndicator();
 
   graphContainer = new Container();
   dirty: boolean = false;
 
   constructor() {
+    super();
+
     if (MapSingleton._instance) {
       return MapSingleton._instance;
     }
 
-    super({
+    MapSingleton._parentElement = document.getElementById(
+      "map"
+    ) as HTMLDivElement;
+
+    MapSingleton._instance = this;
+
+    this.ready = this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    await this.init({
       backgroundColor: 0xf0f0f0,
       antialias: true,
       autoDensity: true,
@@ -51,66 +63,61 @@ class MapSingleton extends Application {
       resizeTo: MapSingleton._parentElement,
     });
 
-    MapSingleton._instance = this;
+    // Disable automatic rendering: we render manually in the ticker callback
+    // below, only when something has changed. (This replaces the old
+    // `Application.prototype.render = null` hack from Pixi v6.)
+    this.ticker.remove(this.render, this);
 
+    this.setup();
+  }
+
+  private setup(): void {
     //Set up custom renderer
     if (import.meta.env.VITE_DEBUG_ENABLED === "true") {
       this.ticker.add(() => {
         // Manually render when something has changed
         if (this.dirty) {
           this.renderIndicator.onRender();
-          this.renderer.render(this.stage);
+          this.render();
           this.dirty = false;
         }
       });
     } else {
       this.ticker.add(() => {
         if (this.dirty) {
-          this.renderer.render(this.stage);
+          this.render();
           this.dirty = false;
         }
       });
     }
 
     // Create a font for usage
-    BitmapFont.from(
-      "TitleFont",
-      {
+    BitmapFont.install({
+      name: "TitleFont",
+      style: {
         fill: "#000000",
         // supersize font based on dpr
         fontSize: 16 * this.renderer.resolution,
         fontWeight: "normal",
       },
-      {
-        chars:
-          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~1234567890!@#$%^&?*-=_+()[]{}<>,./;':\"\\| ",
-      }
-    );
+      chars:
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~1234567890!@#$%^&?*-=_+()[]{}<>,./;':\"\\| ",
+    });
 
     // A container to hold all components, lines, text
     this.stage.addChild(this.graphContainer);
     this.graphContainer.sortableChildren = true; // make zIndex work
     this.stage.addChild(SelectionHandler());
 
-    // FPS Monitor
-    // this.stage.addChild(new FPSMonitor());
-
     // Render indicator
     if (import.meta.env.VITE_DEBUG_ENABLED === "true") {
       this.stage.addChild(this.renderIndicator.r);
     }
 
-    this.view.addEventListener("mousedown", (e: MouseEvent) => {
-      // TODO: Use me to get rid of endless listeners components?
-      // console.log(
-      //   this.renderer.plugins.interaction.hitTest(
-      //     new Point(e.offsetX, e.offsetY)
-      //     )
-      // );
-
+    this.canvas.addEventListener("mousedown", (e: MouseEvent) => {
       const cursorPosition = new Point(e.offsetX, e.offsetY);
 
-      const element = this.renderer.plugins.interaction.hitTest(cursorPosition);
+      const element = this.hitTest(cursorPosition);
 
       if (e.detail % 1 === 0) {
         /* canvas */
@@ -120,7 +127,11 @@ class MapSingleton extends Application {
           }
 
           startPotentialSelect(cursorPosition);
-          this.view.addEventListener("mousemove", this.handleSelectDrag, false);
+          this.canvas.addEventListener(
+            "mousemove",
+            this.handleSelectDrag,
+            false
+          );
           /* component */
         } else if (element.nodeKey) {
           if (!e.shiftKey) {
@@ -129,7 +140,7 @@ class MapSingleton extends Application {
             }
             // start potential drag
             startPotentialTranslation(cursorPosition);
-            this.view.addEventListener(
+            this.canvas.addEventListener(
               "mousemove",
               this.handleSelectionTranslate,
               false
@@ -186,6 +197,39 @@ class MapSingleton extends Application {
     });
   }
 
+  /**
+   * Manual hit test: Pixi v8 removed `renderer.plugins.interaction.hitTest`,
+   * so find the topmost component (by zIndex, then child order) whose bounds
+   * contain the point. Connection lines are excluded: their nodeKey is an
+   * edge key (e.g. "A->B"), not a node, and their rectangular bounds would
+   * otherwise swallow clicks on empty space.
+   */
+  private hitTest(p: Point): ComponentT | undefined {
+    // Highest zIndex first; on ties prefer later siblings, matching Pixi's
+    // paint order (later siblings render on top).
+    const ranked = this.graphContainer.children
+      .map((child, index) => ({ child, index }))
+      .sort(
+        (a, b) =>
+          (b.child.zIndex ?? 0) - (a.child.zIndex ?? 0) || b.index - a.index
+      );
+    for (const { child } of ranked) {
+      const component = child as ComponentT;
+      if (component.nodeKey === undefined) continue;
+      if ((component as unknown as LineT).updateLine !== undefined) continue;
+      const bounds = component.getBounds();
+      if (
+        p.x >= bounds.x &&
+        p.x <= bounds.x + bounds.width &&
+        p.y >= bounds.y &&
+        p.y <= bounds.y + bounds.height
+      ) {
+        return component;
+      }
+    }
+    return undefined;
+  }
+
   handleSelectionTranslate = (e: MouseEvent) => {
     let currentPosition = new Point(e.offsetX, e.offsetY);
     if (state.translateDrag.translationStartPoint) {
@@ -232,8 +276,8 @@ class MapSingleton extends Application {
   handleMouseUp = (e: MouseEvent) => {
     stopSelecting();
     stopTranslation();
-    this.view.removeEventListener("mousemove", this.handleSelectDrag, false);
-    this.view.removeEventListener(
+    this.canvas.removeEventListener("mousemove", this.handleSelectDrag, false);
+    this.canvas.removeEventListener(
       "mousemove",
       this.handleSelectionTranslate,
       false
@@ -243,26 +287,28 @@ class MapSingleton extends Application {
   // Resize container on window resize
   // (manually place throughout app because ResizerObserver makes flashes)
   handleResize = throttle(() => {
-    this.resize();
+    // The renderer's `resizeTo` only reacts to window resize events, but the
+    // panel resizer changes the container's CSS size directly, so resize the
+    // renderer explicitly here before rerendering against the new bounds.
+    // (This is what the old `this.resize()` call did; in Pixi v8 `resize`
+    // is assigned dynamically by the ResizePlugin and isn't in the types,
+    // so call `renderer.resize` directly.)
+    const parent = MapSingleton._parentElement;
+    this.renderer.resize(parent.clientWidth, parent.clientHeight);
     rerenderGraph();
   }, 32);
 
   wardleyToRendererCoords(x: number, y: number) {
-    return [
-      ((x / 100) * this.renderer.width) / this.renderer.resolution,
-      ((1 - y / 100) * this.renderer.height) / this.renderer.resolution,
-    ];
+    // `screen` is already in logical (CSS) pixels even with resolution > 1,
+    // so no density adjustment is needed (unlike the old `renderer.width`,
+    // which was in physical pixels).
+    return [(x / 100) * this.screen.width, (1 - y / 100) * this.screen.height];
   }
 
   rendererToWardleyCoords(x: number, y: number) {
     return [
-      ((1 / this.renderer.width) * this.renderer.resolution * x * 100).toFixed(
-        1
-      ),
-      (
-        100 -
-        (1 / this.renderer.height) * this.renderer.resolution * y * 100
-      ).toFixed(1),
+      ((x / this.screen.width) * 100).toFixed(1),
+      (100 - (y / this.screen.height) * 100).toFixed(1),
     ];
   }
 }
