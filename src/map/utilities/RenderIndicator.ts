@@ -1,14 +1,15 @@
-import { Graphics, BitmapText } from "pixi.js";
+import { Container, Graphics, BitmapText } from "pixi.js";
 
 export class RenderIndicator {
-  r = new Graphics();
+  /** Root container — Graphics no longer allows children in Pixi v8. */
+  r = new Container();
+  private background = new Graphics();
   filled = true;
   counter = 0;
   text: BitmapText;
 
   constructor() {
-    this.r.rect(0, 0, 20, 20);
-    this.r.fill({ color: 0xff0000, alpha: 1 });
+    this.drawBackground();
 
     // Note: the "TitleFont" bitmap font is installed by MapSingleton during
     // setup; BitmapText resolves the font at render time.
@@ -19,7 +20,13 @@ export class RenderIndicator {
         fontSize: 16,
       },
     });
-    this.r.addChild(this.text);
+    this.r.addChild(this.background, this.text);
+  }
+
+  private drawBackground() {
+    this.background.clear();
+    this.background.rect(0, 0, 20, 20);
+    this.background.fill({ color: this.filled ? 0xff0000 : 0xffffff, alpha: 1 });
   }
 
   reset() {
@@ -27,9 +34,7 @@ export class RenderIndicator {
   }
 
   onRender() {
-    this.r.clear();
-    this.r.rect(0, 0, 20, 20);
-    this.r.fill({ color: this.filled ? 0xff0000 : 0xffffff, alpha: 1 });
+    this.drawBackground();
     this.text.text = this.counter.toString();
     this.filled = !this.filled;
     this.counter++;

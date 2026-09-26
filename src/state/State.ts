@@ -1,4 +1,3 @@
-import { Point } from "pixi.js";
 import { proxy, subscribe } from "valtio/vanilla";
 import { proxySet } from "valtio/utils";
 
@@ -7,25 +6,35 @@ import { graph, NodeAttributes, updateComponentPositionOffset } from "./Graph";
 
 import { replaceCoordinates } from "../editor/Editor";
 
+/** Plain coordinate pair. Kept as a plain object (not a Pixi Point) so it is
+ *  safe to store in valtio state — valtio deep-proxies class instances and
+ *  mutates the originals, which corrupts live Pixi objects. */
+export interface PointLike {
+  x: number;
+  y: number;
+}
+
 export interface StateT {
   editor: { editorText: string };
   linking: {
     isLinkModeEnabled: boolean;
-    initialLinkTarget: ComponentT | undefined;
+    /** Node key of the link source. Stored as a string key — never store a
+     *  live Pixi component here (see note on PointLike). */
+    initialLinkTarget: ComponentT["nodeKey"] | undefined;
   };
   selection: {
     selectionItems: Set<ComponentT["nodeKey"]>;
   };
   selectDrag: {
     isSelecting: boolean;
-    selectionStartPoint: Point | undefined;
-    selectionCurrentPoint: Point | undefined;
+    selectionStartPoint: PointLike | undefined;
+    selectionCurrentPoint: PointLike | undefined;
   };
   translateDrag: {
     isTranslating: boolean;
-    translationStartPoint: Point | undefined;
-    translationLastPoint: Point | undefined;
-    translationCurrentPoint: Point | undefined;
+    translationStartPoint: PointLike | undefined;
+    translationLastPoint: PointLike | undefined;
+    translationCurrentPoint: PointLike | undefined;
   };
 }
 
@@ -56,20 +65,20 @@ export const setEditorText = (text: string) => {
 };
 
 export const setInitialLinkTarget = (
-  initialLinkTarget: ComponentT | undefined
+  nodeKey: ComponentT["nodeKey"] | undefined
 ) => {
-  state.linking.initialLinkTarget = initialLinkTarget;
+  state.linking.initialLinkTarget = nodeKey;
 };
 
 export const setIsLinkModeEnabled = (enabled: boolean) => {
   state.linking.isLinkModeEnabled = enabled;
 };
 
-export const startPotentialSelect = (location: Point) => {
+export const startPotentialSelect = (location: PointLike) => {
   state.selectDrag.selectionStartPoint = location;
 };
 
-export const startSelecting = (location: Point) => {
+export const startSelecting = (location: PointLike) => {
   state.selectDrag.isSelecting = true;
   state.selectDrag.selectionCurrentPoint = location;
 };
@@ -96,12 +105,12 @@ export const nodeInSelection = (
   return nodeX >= left && nodeX <= right && nodeY >= bottom && nodeY <= top;
 };
 
-export const updateSelectionPoint = (location: Point) => {
+export const updateSelectionPoint = (location: PointLike) => {
   state.selectDrag.selectionCurrentPoint = location;
   replaceSelection(graph.filterNodes(nodeInSelection));
 };
 
-export const addUpdateSelectionPoint = (location: Point) => {
+export const addUpdateSelectionPoint = (location: PointLike) => {
   state.selectDrag.selectionCurrentPoint = location;
   addToSelection(graph.filterNodes(nodeInSelection));
 };
@@ -134,11 +143,11 @@ export const xorSelection = (inputSelection: ComponentT["nodeKey"][]) => {
   });
 };
 
-export const startPotentialTranslation = (location: Point) => {
+export const startPotentialTranslation = (location: PointLike) => {
   state.translateDrag.translationStartPoint = location;
 };
 
-export const startTranslation = (location: Point) => {
+export const startTranslation = (location: PointLike) => {
   state.translateDrag.isTranslating = true;
   state.translateDrag.translationLastPoint = location;
   state.translateDrag.translationCurrentPoint = location;
@@ -158,7 +167,7 @@ export const stopTranslation = () => {
   state.translateDrag.translationCurrentPoint = undefined;
 };
 
-export const updateTranslationPoint = (location: Point) => {
+export const updateTranslationPoint = (location: PointLike) => {
   state.translateDrag.translationCurrentPoint = location;
 
   state.selection.selectionItems.forEach((item) => {
