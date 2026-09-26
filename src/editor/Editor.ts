@@ -88,9 +88,7 @@ export const undoManager = new Y.UndoManager(yText, { captureTimeout: 350 });
 const provider = new WebrtcProvider(`MapTogether${room}`, yDoc, {
   password: "isnh388u3unhuie",
   signaling: [
-    "wss://signaling.yjs.dev",
-    // "wss://y-webrtc-signaling-us.herokuapp.com",
-    "wss://y-webrtc-signaling-eu.herokuapp.com",
+    "wss://y-webrtc-eu.fly.dev",
   ],
 });
 
