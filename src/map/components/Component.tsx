@@ -238,7 +238,7 @@ export const Component = (config: IComponentConfig) => {
   const renderComponent = (g: Graphics, state: StateT) => {
     if (state.linking.isLinkModeEnabled) {
       interactionMode = "targetable";
-      if (state.linking.initialLinkTarget?.nodeKey === name) {
+      if (state.linking.initialLinkTarget === name) {
         interactionMode = "targeted";
       }
     } else if (state.selection.selectionItems.has(component.nodeKey)) {
@@ -275,20 +275,20 @@ export const Component = (config: IComponentConfig) => {
     // If ctrl pressed
     if (state.linking.isLinkModeEnabled) {
       if (!state.linking.initialLinkTarget) {
-        setInitialLinkTarget(target); //->State
+        setInitialLinkTarget(target.nodeKey); //->State
         return;
       } else if (
         state.linking.initialLinkTarget &&
-        state.linking.initialLinkTarget.nodeKey !== target.nodeKey
+        state.linking.initialLinkTarget !== target.nodeKey
       ) {
         // ^ If not trying to link a component to itself
         if (
-          !graph.hasEdge(target.nodeKey, state.linking.initialLinkTarget.nodeKey)
+          !graph.hasEdge(target.nodeKey, state.linking.initialLinkTarget)
         )
           //<-Graph
           // TODO: this string should be borrowed from Parser
           appendText(
-            `\n${state.linking.initialLinkTarget.nodeKey}.${target.nodeKey}`
+            `\n${state.linking.initialLinkTarget}.${target.nodeKey}`
           ); //->Editor
       }
     }

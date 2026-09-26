@@ -1,5 +1,5 @@
 import throttle from "lodash/throttle";
-import { Application, Container, BitmapFont, Point } from "pixi.js";
+import { Application, Container, BitmapFont } from "pixi.js";
 import { appendText, renameComponent } from "../../editor/Editor";
 
 import { graph, rerenderGraph } from "../../state/Graph";
@@ -20,6 +20,7 @@ import {
   stopTranslation,
   startTranslation,
   updateTranslationPoint,
+  PointLike,
 } from "../../state/State";
 
 import { SelectionHandler } from "./SelectionHandler";
@@ -115,7 +116,7 @@ class MapSingleton extends Application {
     }
 
     this.canvas.addEventListener("mousedown", (e: MouseEvent) => {
-      const cursorPosition = new Point(e.offsetX, e.offsetY);
+      const cursorPosition = { x: e.offsetX, y: e.offsetY };
 
       const element = this.hitTest(cursorPosition);
 
@@ -204,7 +205,7 @@ class MapSingleton extends Application {
    * edge key (e.g. "A->B"), not a node, and their rectangular bounds would
    * otherwise swallow clicks on empty space.
    */
-  private hitTest(p: Point): ComponentT | undefined {
+  private hitTest(p: PointLike): ComponentT | undefined {
     // Highest zIndex first; on ties prefer later siblings, matching Pixi's
     // paint order (later siblings render on top).
     const ranked = this.graphContainer.children
@@ -231,7 +232,7 @@ class MapSingleton extends Application {
   }
 
   handleSelectionTranslate = (e: MouseEvent) => {
-    let currentPosition = new Point(e.offsetX, e.offsetY);
+    let currentPosition = { x: e.offsetX, y: e.offsetY };
     if (state.translateDrag.translationStartPoint) {
       if (
         !state.translateDrag.translationCurrentPoint &&
@@ -251,7 +252,7 @@ class MapSingleton extends Application {
   };
 
   handleSelectDrag = (e: MouseEvent) => {
-    let currentPosition = new Point(e.offsetX, e.offsetY);
+    let currentPosition = { x: e.offsetX, y: e.offsetY };
     if (state.selectDrag.selectionStartPoint) {
       if (
         !state.selectDrag.selectionCurrentPoint &&
