@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wmaps-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "account_id": "ea273b96fe59655aa4b5ce77dccec99c",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vars": {
+    // Comma-separated origins allowed to open signaling sockets / fetch ICE.
+    "ALLOWED_ORIGINS": "https://maptogether.io,https://www.maptogether.io,https://maptogether.netlify.app,https://*--maptogether.netlify.app,http://localhost:5173"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "SIGNAL_ROOM", "class_name": "SignalRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalRoom"] }]
+  // Secrets (wrangler secret put): TURN_KEY_ID, TURN_KEY_API_TOKEN
+}

@@ -1,9 +1,5 @@
 import * as Y from "yjs";
-import { describe, it, expect, vi } from "vitest";
-
-// The real Trystero package opens Nostr sockets on import; we only need the
-// in-memory fake below.
-vi.mock("trystero", () => ({ joinRoom: () => { throw new Error("unused"); } }));
+import { describe, it, expect } from "vitest";
 
 import { TrysteroProvider } from "./TrysteroProvider";
 
@@ -19,12 +15,13 @@ function createFakeNetwork() {
     onMessage: ((data: Uint8Array, ctx: { peerId: string }) => void) | null;
   };
   const rooms = new Map<string, Peer[]>();
+  const sent = { count: 0 };
   let n = 0;
 
-  const joinRoom = (_config: unknown, roomId: string) => {
+  const joinRoom = (roomId: string, selfId: string = `peer-${n++}`) => {
     const peers = rooms.get(roomId) ?? [];
     rooms.set(roomId, peers);
-    const self: Peer = { id: `peer-${n++}`, room: null, onMessage: null };
+    const self: Peer = { id: selfId, room: null, onMessage: null };
 
     const room = {
       onPeerJoin: null as null | ((id: string) => void),
@@ -40,10 +37,12 @@ function createFakeNetwork() {
         get onMessage() {
           return self.onMessage;
         },
-        send: async (data: Uint8Array, opts?: { target?: string }) => {
+        send: async (data: Uint8Array, opts?: { target?: string | string[] }) => {
+          sent.count++;
+          const targets = opts?.target == null ? null : [opts.target].flat();
           for (const p of peers) {
             if (p === self) continue;
-            if (opts?.target && opts.target !== p.id) continue;
+            if (targets && !targets.includes(p.id)) continue;
             const copy = data.slice();
             queueMicrotask(() => p.onMessage?.(copy, { peerId: self.id }));
           }
@@ -68,11 +67,14 @@ function createFakeNetwork() {
     return room as any;
   };
 
-  return { joinRoom };
+  return { joinRoom, sent };
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 10));
 
+function provider(doc: Y.Doc, room: any) {
+  return new TrysteroProvider(doc, room);
+}
 describe("TrysteroProvider", () => {
   it("syncs existing and new edits between two peers", async () => {
     const net = createFakeNetwork();
@@ -80,10 +82,9 @@ describe("TrysteroProvider", () => {
     const b = new Y.Doc();
     a.getText("t").insert(0, "hello");
 
-    const pa = new TrysteroProvider("room", a, { appId: "test", joinRoom: net.joinRoom });
-    const pb = new TrysteroProvider("room", b, { appId: "test", joinRoom: net.joinRoom });
+    const pa = provider(a, net.joinRoom("room"));
+    const pb = provider(b, net.joinRoom("room"));
     await flush();
-
     expect(b.getText("t").toString()).toBe("hello");
 
     b.getText("t").insert(5, " world");
@@ -98,12 +99,14 @@ describe("TrysteroProvider", () => {
     const net = createFakeNetwork();
     const a = new Y.Doc();
     const b = new Y.Doc();
-    const pa = new TrysteroProvider("room", a, { appId: "test", joinRoom: net.joinRoom });
-    const pb = new TrysteroProvider("room", b, { appId: "test", joinRoom: net.joinRoom });
+    const pa = provider(a, net.joinRoom("room"));
+    const pb = provider(b, net.joinRoom("room"));
 
     pb.awareness.setLocalStateField("user", { name: "otter" });
     await flush();
-    expect(pa.awareness.getStates().get(b.clientID)).toEqual({ user: { name: "otter" } });
+    expect(pa.awareness.getStates().get(b.clientID)).toEqual({
+      user: { name: "otter" },
+    });
 
     pb.destroy();
     await flush();
@@ -116,10 +119,31 @@ describe("TrysteroProvider", () => {
     const a = new Y.Doc();
     const b = new Y.Doc();
     a.getText("t").insert(0, "secret");
-    const pa = new TrysteroProvider("room-1", a, { appId: "test", joinRoom: net.joinRoom });
-    const pb = new TrysteroProvider("room-2", b, { appId: "test", joinRoom: net.joinRoom });
+    const pa = provider(a, net.joinRoom("room-1"));
+    const pb = provider(b, net.joinRoom("room-2"));
     await flush();
     expect(b.getText("t").toString()).toBe("");
+    pa.destroy();
+    pb.destroy();
+  });
+
+  it("sends each edit once and nothing when alone", async () => {
+    const net = createFakeNetwork();
+    const a = new Y.Doc();
+    const pa = provider(a, net.joinRoom("room"));
+    await flush();
+    a.getText("t").insert(0, "solo");
+    await flush();
+    expect(net.sent.count).toBe(0);
+
+    const b = new Y.Doc();
+    const pb = provider(b, net.joinRoom("room"));
+    await flush();
+    net.sent.count = 0;
+    a.getText("t").insert(0, "x");
+    await flush();
+    expect(net.sent.count).toBe(1);
+    expect(b.getText("t").toString()).toBe("xsolo");
     pa.destroy();
     pb.destroy();
   });

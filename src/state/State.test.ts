@@ -3,7 +3,7 @@ import { it, expect, describe, vi } from "vitest";
 
 // State.ts pulls in Graph.ts -> MapSingleton.tsx (constructs a Pixi
 // Application at module level) and Editor.ts (touches window.heap and opens
-// a y-webrtc provider at module level). None of that is needed here.
+// a multiplayer sync provider at module level). None of that is needed here.
 vi.mock("./Graph", () => ({}));
 vi.mock("../editor/Editor", () => ({}));
 
