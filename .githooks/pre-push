@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks pushes whose edited code fails the CRAP / maintainability gate.
+# Skip once with: git push --no-verify
+exec node scripts/quality-gate.mjs --head HEAD

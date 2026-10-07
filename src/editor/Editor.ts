@@ -1,7 +1,8 @@
 import * as Y from "yjs";
 // @ts-ignore because no typings
 import { yCollab } from "y-codemirror.next";
-import { WebrtcProvider } from "y-webrtc";
+import { Awareness } from "y-protocols/awareness";
+import { connectSync } from "../sync/connect";
 
 import { ChangeSpec, EditorState } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
@@ -84,13 +85,13 @@ export const multiplayerClientID = yDoc.clientID;
 
 export const undoManager = new Y.UndoManager(yText, { captureTimeout: 350 });
 
-// @ts-ignore because Typing error in WebrtcProvider
-const provider = new WebrtcProvider(`MapTogether${room}`, yDoc, {
-  password: "isnh388u3unhuie",
-  signaling: [
-    "wss://y-webrtc-eu.fly.dev",
-  ],
-});
+const awareness = new Awareness(yDoc);
+
+connectSync(yDoc, awareness, room)
+  .then((sync) => {
+    if (import.meta.env.VITE_DEBUG_ENABLED === "true") (window as any).__sync = sync;
+  })
+  .catch((err) => console.error("[sync] failed to connect", err));
 
 let username = localStorage.getItem("username");
 if (!username) {
@@ -100,13 +101,13 @@ if (!username) {
 
 window.heap.identify(username);
 
-provider.awareness.setLocalStateField("user", {
+awareness.setLocalStateField("user", {
   name: username,
   color: userColor.color,
   colorLight: userColor.light,
 });
 
-// provider.awareness.on("change", (change: any, origin: any) => {
+// awareness.on("change", (change: any, origin: any) => {
 //   console.log(change, origin);
 // });
 
@@ -121,7 +122,7 @@ const startState = EditorState.create({
     lintGutter(),
     EditorView.lineWrapping,
     Theme,
-    yCollab(yText, provider.awareness, { undoManager }),
+    yCollab(yText, awareness, { undoManager }),
     EditorView.updateListener.of((e) => {
       if (e.docChanged) {
         handleEditorChange(e.state.doc.toString());
