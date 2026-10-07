@@ -8,6 +8,7 @@
   "observability": { "enabled": true },
   "vars": {
     // Comma-separated origins allowed to connect; * matches one DNS label.
+  // Secrets (wrangler secret put): TURN_KEY_ID, TURN_KEY_API_TOKEN
     "ALLOWED_ORIGINS": "https://maptogether.io,https://www.maptogether.io,https://maptogether.netlify.app,https://*--maptogether.netlify.app,http://localhost:5173"
   },
   "durable_objects": {

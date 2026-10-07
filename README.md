@@ -3,12 +3,13 @@ Created with CodeSandbox
 
 ## Multiplayer
 
-Editors on the same map (`/<map-id>`) sync live with Yjs through our
-Cloudflare relay (`relay/`), which also saves each map.
+Editors on the same map (`/<map-id>`) sync live with Yjs over WebRTC, peer
+to peer. Our Cloudflare relay (`relay/`) does signaling, hands out TURN
+credentials, and saves and loads each map in a Durable Object.
 
 | Env var | Default | Purpose |
 | --- | --- | --- |
-| `VITE_SYNC_RELAY_URL` | `https://wmaps-relay.innerlattice.workers.dev` | Sync relay |
+| `VITE_SYNC_RELAY_URL` | `https://wmaps-relay.innerlattice.workers.dev` | Signaling and storage relay |
 
 To develop against a local relay: `yarn relay:dev`, then run the app with
 `VITE_SYNC_RELAY_URL=http://localhost:8787 yarn dev`.

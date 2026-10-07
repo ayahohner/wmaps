@@ -87,9 +87,11 @@ export const undoManager = new Y.UndoManager(yText, { captureTimeout: 350 });
 
 const awareness = new Awareness(yDoc);
 
-connectSync(yDoc, awareness, room).catch((err) =>
-  console.error("[sync] failed to connect", err)
-);
+connectSync(yDoc, awareness, room)
+  .then((sync) => {
+    if (import.meta.env.VITE_DEBUG_ENABLED === "true") (window as any).__sync = sync;
+  })
+  .catch((err) => console.error("[sync] failed to connect", err));
 
 let username = localStorage.getItem("username");
 if (!username) {

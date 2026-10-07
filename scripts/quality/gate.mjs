@@ -4,7 +4,7 @@ import { crap, functionCoverage } from "./coverage.mjs";
 export const DEFAULTS = { maxCrap: 8, minMi: 75 };
 
 const CODE_FILE = /\.[cm]?[jt]sx?$/;
-const NOT_GATED = /(\.test\.|\.spec\.|\.d\.ts$|(^|\/)(node_modules|dist|coverage)\/)/;
+const NOT_GATED = /(\.test\.|\.spec\.|\.d\.ts$|(^|\/)(node_modules|dist|coverage|testing|__tests__)\/)/;
 
 export function isGatedFile(path) {
   return CODE_FILE.test(path) && !NOT_GATED.test(path);

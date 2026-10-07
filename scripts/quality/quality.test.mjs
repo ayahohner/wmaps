@@ -111,6 +111,7 @@ describe("gate", () => {
     expect(isGatedFile("src/a.d.ts")).toBe(false);
     expect(isGatedFile("README.md")).toBe(false);
     expect(isGatedFile("dist/a.js")).toBe(false);
+    expect(isGatedFile("src/testing/fake.ts")).toBe(false);
   });
 
   it("flags untested complex functions, only where edited", () => {

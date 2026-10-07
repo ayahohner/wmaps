@@ -1,25 +1,87 @@
 import type * as Y from "yjs";
 import type { Awareness } from "y-protocols/awareness";
-import { SyncProvider } from "./SyncProvider";
+import { MapStorage } from "./MapStorage";
+import { PeerMesh, type RelayMessage } from "./PeerMesh";
+import { PeerOrigin, PeerSync } from "./PeerSync";
+import { RelaySocket } from "./RelaySocket";
 
 const DEFAULT_RELAY_URL = "https://wmaps-relay.innerlattice.workers.dev";
+const STUN: RTCIceServer = { urls: ["stun:stun.cloudflare.com:3478"] };
+
+export interface SyncOptions {
+  relayUrl?: string;
+  /** Injected for tests and Node. */
+  WebSocket?: typeof WebSocket;
+  RTCPeerConnection?: typeof RTCPeerConnection;
+  fetch?: typeof fetch;
+}
 
 /**
- * Connects a map's Y.Doc to the relay, which keeps one Durable Object (and one
- * saved copy) per map. The map id is hashed so the relay never sees it.
+ * Multiplayer for one map: Yjs edits and cursors go peer to peer over WebRTC;
+ * the relay's Durable Object does signaling and loads and saves the map.
  */
+export class MapSync {
+  readonly peers: PeerSync;
+  readonly storage: MapStorage;
+  readonly mesh: PeerMesh;
+  readonly socket: RelaySocket;
+
+  constructor(url: string, doc: Y.Doc, awareness: Awareness, iceServers: RTCIceServer[], opts: SyncOptions = {}) {
+    this.peers = new PeerSync(doc, awareness);
+    this.storage = new MapStorage(doc, (data) => this.socket.sendBinary(data), (o) => o instanceof PeerOrigin);
+    this.mesh = new PeerMesh(
+      (to, data) => this.socket.sendJSON({ type: "signal", to, data }),
+      (peerId, channel) => this.peers.attach(peerId, channel),
+      { iceServers, RTCPeerConnection: opts.RTCPeerConnection }
+    );
+    this.socket = new RelaySocket(
+      url,
+      {
+        onOpen: () => this.storage.start(),
+        onText: (message) => void this.mesh.handle(message as RelayMessage),
+        onBinary: (data) => this.storage.receive(data),
+      },
+      { WebSocket: opts.WebSocket }
+    );
+  }
+
+  destroy() {
+    this.socket.destroy();
+    this.mesh.destroy();
+    this.peers.destroy();
+    this.storage.destroy();
+  }
+}
+
 export async function connectSync(
   doc: Y.Doc,
   awareness: Awareness,
   mapId: string,
-  relayUrl: string = import.meta.env.VITE_SYNC_RELAY_URL || DEFAULT_RELAY_URL
-): Promise<SyncProvider> {
-  return new SyncProvider(await roomUrl(relayUrl, mapId), doc, awareness);
+  opts: SyncOptions = {}
+): Promise<MapSync> {
+  const relayUrl = opts.relayUrl ?? (import.meta.env.VITE_SYNC_RELAY_URL || DEFAULT_RELAY_URL);
+  const [url, iceServers] = await Promise.all([roomUrl(relayUrl, mapId), fetchIceServers(relayUrl, opts.fetch)]);
+  return new MapSync(url, doc, awareness, iceServers, opts);
 }
 
 export async function roomUrl(relayUrl: string, mapId: string): Promise<string> {
-  const base = relayUrl.replace(/\/+$/, "").replace(/^http/, "ws");
-  return `${base}/sync/${await hashRoom(mapId)}`;
+  return `${trimSlash(relayUrl).replace(/^http/, "ws")}/sync/${await hashRoom(mapId)}`;
+}
+
+/** STUN plus short-lived TURN credentials from the relay; STUN alone if that fails. */
+export async function fetchIceServers(relayUrl: string, fetcher: typeof fetch = fetch): Promise<RTCIceServer[]> {
+  try {
+    const res = await fetcher(`${trimSlash(relayUrl)}/ice`);
+    if (!res.ok) throw new Error(`relay /ice ${res.status}`);
+    return ((await res.json()) as { iceServers: RTCIceServer[] }).iceServers;
+  } catch (err) {
+    console.warn("[sync] no TURN servers, using STUN only", err);
+    return [STUN];
+  }
+}
+
+function trimSlash(url: string) {
+  return url.replace(/\/+$/, "");
 }
 
 async function hashRoom(mapId: string): Promise<string> {

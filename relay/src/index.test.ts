@@ -12,7 +12,7 @@ vi.mock("cloudflare:workers", () => ({
 
 /** Minimal stand-ins for the Workers runtime. */
 class FakeSocket {
-  sent: unknown[] = [];
+  sent: any[] = [];
   closed = false;
   private attachment: unknown = null;
   send(data: unknown) {
@@ -30,9 +30,12 @@ class FakeSocket {
 }
 
 class FakeResponse {
-  constructor(readonly body: unknown, readonly init: { status?: number; webSocket?: FakeSocket } = {}) {}
+  constructor(readonly body: unknown, readonly init: { status?: number; headers?: Record<string, string> } = {}) {}
   get status() {
     return this.init.status ?? 200;
+  }
+  static json(body: unknown, init?: FakeResponse["init"]) {
+    return new FakeResponse(body, init);
   }
 }
 
@@ -70,6 +73,7 @@ function updateFrame(text: string) {
 beforeEach(() => {
   vi.stubGlobal("Response", FakeResponse);
   vi.stubGlobal("WebSocketRequestResponsePair", class {});
+  vi.stubGlobal("crypto", { randomUUID: () => `peer-${Math.random()}` });
   vi.stubGlobal("WebSocketPair", class {
     0 = new FakeSocket();
     1 = new FakeSocket();
@@ -98,8 +102,18 @@ describe("worker fetch", async () => {
     const statusOf = async (path: string, headers: Record<string, string>) =>
       (await worker.fetch(request(path, headers) as any, env() as any)).status;
     expect(await statusOf("/sync/nope", ok)).toBe(404);
+    expect(await statusOf("/ice", { Origin: "https://evil.com" })).toBe(403);
     expect(await statusOf(`/sync/${ROOM}`, { ...ok, Origin: "https://evil.com" })).toBe(403);
     expect(await statusOf(`/sync/${ROOM}`, { Origin: ok.Origin })).toBe(426);
+  });
+});
+
+describe("worker /ice", async () => {
+  const { default: worker } = await import("./index");
+  it("returns STUN without TURN secrets, private to the origin", async () => {
+    const res = (await worker.fetch(request("/ice", { Origin: "https://maptogether.io" }) as any, env() as any)) as unknown as FakeResponse;
+    expect(res.body).toEqual({ iceServers: [{ urls: ["stun:stun.cloudflare.com:3478"] }] });
+    expect(res.init.headers).toMatchObject({ "Access-Control-Allow-Origin": "https://maptogether.io" });
   });
 });
 
@@ -117,12 +131,14 @@ describe("MapRoom", async () => {
     expect(res.status).toBe(101);
     await room.fetch();
     const [a, b] = state.sockets;
-    expect(a.sent.length).toBeGreaterThan(0);
+    const welcome = JSON.parse(b.sent[0]);
+    expect(welcome).toMatchObject({ type: "welcome", peers: [JSON.parse(a.sent[0]).id] });
 
     await room.webSocketMessage(a as any, updateFrame("edit"));
-    await room.webSocketMessage(a as any, "ping");
     await room.webSocketMessage(a as any, new ArrayBuffer(2 * 1024 * 1024));
-    expect(b.sent.length).toBeGreaterThan(1);
+    await room.webSocketMessage(a as any, JSON.stringify({ type: "signal", to: welcome.id, data: { sdp: 1 } }));
+    await room.webSocketMessage(a as any, "x".repeat(65 * 1024));
+    expect(b.sent.filter((m) => typeof m === "string").map((m) => JSON.parse(m).type)).toEqual(["welcome", "signal"]);
     expect(state.alarms).toHaveLength(1);
 
     await room.alarm();
