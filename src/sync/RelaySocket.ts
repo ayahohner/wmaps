@@ -33,12 +33,12 @@ export class RelaySocket {
     private readonly handlers: RelayHandlers,
     opts: RelaySocketOptions = {}
   ) {
+    // `??`, not a spread: callers pass `{ WebSocket: undefined }` to mean the default.
     this.opts = {
-      WebSocket: globalThis.WebSocket,
-      pingIntervalMs: 20_000,
-      silenceTimeoutMs: 45_000,
-      maxBackoffMs: 10_000,
-      ...opts,
+      WebSocket: opts.WebSocket ?? globalThis.WebSocket,
+      pingIntervalMs: opts.pingIntervalMs ?? 20_000,
+      silenceTimeoutMs: opts.silenceTimeoutMs ?? 45_000,
+      maxBackoffMs: opts.maxBackoffMs ?? 10_000,
     };
     this.connect();
   }

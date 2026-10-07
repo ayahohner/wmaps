@@ -59,6 +59,19 @@ describe("MapSync", () => {
 });
 
 describe("connectSync", () => {
+  it("uses the browser's WebSocket by default", async () => {
+    const relay = createFakeRelay();
+    vi.stubGlobal("WebSocket", relay.WebSocket);
+    try {
+      const doc = new Y.Doc();
+      const fetcher = async () => Response.json({ iceServers: [] });
+      syncs.push(await connectSync(doc, new Awareness(doc), "m", { fetch: fetcher as any }));
+      await until(() => relay.sockets.size === 1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("hashes the map id into the room URL", async () => {
     const url = await roomUrl("https://relay.example/", "my-map");
     expect(url).toMatch(/^wss:\/\/relay\.example\/sync\/[a-f0-9]{32}$/);
