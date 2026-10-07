@@ -413,6 +413,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/secp256k1@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "@noble/secp256k1@npm:3.2.0"
+  checksum: 10c0/6c5bc92b618b4a737f9e83d5d6da66bae4be029809b8f57314b984cc3202b00147dbbcf9e78d2d8fa93ca9fa368b5003423117d4dcae0a37bfd55e9358e95d68
+  languageName: node
+  linkType: hard
+
 "@oxc-project/types@npm:=0.151.0":
   version: 0.151.0
   resolution: "@oxc-project/types@npm:0.151.0"
@@ -786,6 +793,23 @@ __metadata:
   version: 3.17.11
   resolution: "@tanstack/virtual-core@npm:3.17.11"
   checksum: 10c0/7773d373ee7eae2660b0e7bcbcc6fc4a9af632d42f6b6b32525302ec239306543802c865942654c3aff7f9bda460141a1f0b0a11b994f2029cb1257cd1b60ba6
+  languageName: node
+  linkType: hard
+
+"@trystero-p2p/core@npm:0.26.0":
+  version: 0.26.0
+  resolution: "@trystero-p2p/core@npm:0.26.0"
+  checksum: 10c0/66dbc65dfe664b0075799b5eae43535fd2377e21e74dff6930506231d36e5846f79086454c1f6c4095f36d806b80bf6364ff2f46579881a0a9ed1a18f218b79e
+  languageName: node
+  linkType: hard
+
+"@trystero-p2p/nostr@npm:0.26.0":
+  version: 0.26.0
+  resolution: "@trystero-p2p/nostr@npm:0.26.0"
+  dependencies:
+    "@noble/secp256k1": "npm:^3.2.0"
+    "@trystero-p2p/core": "npm:0.26.0"
+  checksum: 10c0/8777efa8a396fddc5cfac6fea6756f6de62c6902833567567964ce97320ef73c963f68e4f7ba5b8504cc1fc0be8aee0bbc8f4c4cee1c0af484fc1283df0c4065
   languageName: node
   linkType: hard
 
@@ -1745,6 +1769,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lib0@npm:^0.2.119":
+  version: 0.2.119
+  resolution: "lib0@npm:0.2.119"
+  dependencies:
+    isomorphic.js: "npm:^0.2.4"
+  bin:
+    0ecdsa-generate-keypair: bin/0ecdsa-generate-keypair.js
+    0gentesthtml: bin/gentesthtml.js
+    0serve: bin/0serve.js
+  checksum: 10c0/722277c01158cc560c4cdc6093803435d5c1c1ed278a7ccfca4693968cc8a8ff361a0bbfcf7d76d6085c8b65716d381af81cf8d415bd9b5e48428df8896393bf
+  languageName: node
+  linkType: hard
+
 "lib0@npm:^0.2.42, lib0@npm:^0.2.85, lib0@npm:^0.2.99":
   version: 0.2.117
   resolution: "lib0@npm:0.2.117"
@@ -2554,6 +2591,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"trystero@npm:0.26.0":
+  version: 0.26.0
+  resolution: "trystero@npm:0.26.0"
+  dependencies:
+    "@trystero-p2p/nostr": "npm:0.26.0"
+  checksum: 10c0/40a8dc442df7974c020f1af0c5faf5f7b750ac9221f4978434ea23c3293ee067c8a5a83a6b32ad892470edf9eaba490f88f948e736ac0760e31959197cf2cfe6
+  languageName: node
+  linkType: hard
+
 "tslib@npm:^2.0.0, tslib@npm:^2.4.0, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
@@ -2927,6 +2973,7 @@ __metadata:
     graphology-generators: "npm:^0.11.2"
     graphology-types: "npm:^0.24.8"
     happy-dom: "npm:^20.14.5"
+    lib0: "npm:^0.2.119"
     lodash: "npm:^4.18.1"
     pixi.js: "npm:^8.21.0"
     postcss: "npm:^8.5.28"
@@ -2934,12 +2981,14 @@ __metadata:
     react: "npm:^19.3.0"
     react-dom: "npm:^19.3.0"
     tailwindcss: "npm:^4.3.3"
+    trystero: "npm:0.26.0"
     typescript: "npm:^7.0.2"
     valtio: "npm:^2.3.2"
     vite: "npm:^8.3.1"
     vitest: "npm:^5.0.2"
     xregexp: "npm:^5.1.3"
     y-codemirror.next: "npm:^0.3.6"
+    y-protocols: "npm:^1.0.7"
     y-webrtc: "npm:^10.3.0"
     yjs: "npm:^13.6.33"
   languageName: unknown
@@ -3009,7 +3058,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"y-protocols@npm:^1.0.6":
+"y-protocols@npm:^1.0.6, y-protocols@npm:^1.0.7":
   version: 1.0.7
   resolution: "y-protocols@npm:1.0.7"
   dependencies:

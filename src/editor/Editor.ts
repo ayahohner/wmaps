@@ -2,6 +2,7 @@ import * as Y from "yjs";
 // @ts-ignore because no typings
 import { yCollab } from "y-codemirror.next";
 import { WebrtcProvider } from "y-webrtc";
+import { TrysteroProvider } from "./TrysteroProvider";
 
 import { ChangeSpec, EditorState } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
@@ -84,13 +85,38 @@ export const multiplayerClientID = yDoc.clientID;
 
 export const undoManager = new Y.UndoManager(yText, { captureTimeout: 350 });
 
-// @ts-ignore because Typing error in WebrtcProvider
-const provider = new WebrtcProvider(`MapTogether${room}`, yDoc, {
-  password: "isnh388u3unhuie",
-  signaling: [
-    "wss://y-webrtc-eu.fly.dev",
-  ],
-});
+const SYNC_PASSWORD = "isnh388u3unhuie";
+const roomName = `MapTogether${room}`;
+
+/**
+ * Multiplayer sync provider.
+ * - "trystero" (default): Trystero over public Nostr relays for signaling.
+ * - "webrtc": legacy y-webrtc. Its public signaling servers are all down, so
+ *   this only syncs tabs in the same browser. Kept behind the flag for
+ *   comparison while Trystero beds in.
+ * Override per build with VITE_SYNC_PROVIDER, or per tab with ?sync=webrtc.
+ */
+const syncProvider =
+  new URLSearchParams(document.location.search).get("sync") ??
+  import.meta.env.VITE_SYNC_PROVIDER ??
+  "trystero";
+
+const provider =
+  syncProvider === "webrtc"
+    ? // @ts-ignore because Typing error in WebrtcProvider
+      new WebrtcProvider(roomName, yDoc, {
+        password: SYNC_PASSWORD,
+        signaling: ["wss://y-webrtc-eu.fly.dev"],
+      })
+    : new TrysteroProvider(roomName, yDoc, {
+        appId: "wmaps.innerlattice",
+        password: SYNC_PASSWORD,
+      });
+
+if (import.meta.env.VITE_DEBUG_ENABLED === "true") {
+  // Handy when testing sync across two browsers.
+  (window as any).__syncProvider = provider;
+}
 
 let username = localStorage.getItem("username");
 if (!username) {
