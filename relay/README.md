@@ -1,37 +1,32 @@
 # wmaps-relay
 
-Cloudflare Worker that lets map editors find each other. Deployed at
+Cloudflare Worker that syncs maps. Deployed at
 `https://wmaps-relay.innerlattice.workers.dev`.
 
-- `GET /signal/:room` – WebSocket. One SQLite-backed Durable Object per map,
-  doing plain topic pub/sub for Trystero's (encrypted) WebRTC handshakes.
-  Uses WebSocket Hibernation, and `ping`/`pong` keepalives are auto-answered,
-  so idle rooms cost nothing. Map edits go peer to peer, never through here.
-- `GET /ice` – ICE servers: Cloudflare STUN plus 4-hour Cloudflare TURN
-  credentials (for peers behind strict NATs/firewalls).
+`GET /sync/:room` opens a WebSocket into that map's Durable Object
+(`MapRoom`). It holds the Yjs document, relays edits and cursors between
+editors, and saves the document to its SQLite storage (2 s after an edit, and
+when the last editor leaves), so a map is there for whoever opens it next.
 
-Both endpoints only answer browsers from `ALLOWED_ORIGINS` (see `wrangler.jsonc`;
-`*` matches one subdomain label, e.g. Netlify deploy previews).
+- `src/room.ts` – the document logic (`YRoom`), runtime-free and unit tested.
+- `src/index.ts` – Worker routing and the Durable Object glue.
+- `src/origins.ts` – `ALLOWED_ORIGINS` matching (`*` = one DNS label, for
+  Netlify deploy previews).
 
-## Deploy
+Room ids are a hash of the map id, computed in the browser. Keepalive
+`ping`/`pong` is answered by the runtime, so idle rooms can hibernate.
 
-```sh
-cd relay
-npm install
-npx wrangler deploy          # needs CLOUDFLARE_API_TOKEN
-```
+## Develop and deploy
 
-Secrets (already set on the deployed Worker):
+From the repo root (the relay shares its dependencies):
 
 ```sh
-npx wrangler secret put TURN_KEY_ID          # Realtime TURN key id
-npx wrangler secret put TURN_KEY_API_TOKEN   # that key's secret
+yarn relay:dev      # local relay on :8787
+yarn relay:deploy   # needs CLOUDFLARE_API_TOKEN
 ```
 
-Without them `/ice` falls back to STUN only.
+## Limits and costs
 
-## Costs
-
-Free plan covers a lot: 100k Durable Object requests/day (incoming WebSocket
-messages bill at 20:1), and 1,000 GB/month of TURN. Past that, Workers Paid is
-$5/month and TURN is $0.05/GB.
+64 editors per map, 1 MB per message, ~2 MB saved document. The Workers free
+plan covers 100k Durable Object requests a day (incoming WebSocket messages
+bill at 20:1); past that, Workers Paid is $5/month.

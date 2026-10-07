@@ -8,7 +8,6 @@
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
     "@replit/codemirror-vscode-keymap": "^6.0.2",
-    "@trystero-p2p/core": "0.26.0",
     "@types/codemirror": "^5.60.18",
     "@types/combokeys": "^2.4.9",
     "@types/react": "^19.3.0",
@@ -37,6 +36,8 @@
   },
   "description": "",
   "devDependencies": {
+    "@babel/parser": "^8.0.6",
+    "@cloudflare/workers-types": "^5.20261006.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/lodash": "^4.17.25",
     "@types/node": "^24",
@@ -47,7 +48,7 @@
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "vitest": "^5.0.2",
-    "werift": "^0.24.4"
+    "wrangler": "^4.147.0"
   },
   "engines": {
     "node": ">=24"
@@ -71,7 +72,10 @@
     "dev": "vite",
     "serve": "vite preview",
     "test": "vitest",
-    "test:relay": "scripts/test-relay.sh"
+    "relay:dev": "wrangler dev -c relay/wrangler.jsonc",
+    "relay:deploy": "wrangler deploy -c relay/wrangler.jsonc",
+    "quality": "node scripts/quality-gate.mjs",
+    "postinstall": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "version": "3.2.0"
 }

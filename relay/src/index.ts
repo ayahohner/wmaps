@@ -1,221 +1,119 @@
 import { DurableObject } from "cloudflare:workers";
+import { isAllowedOrigin } from "./origins";
+import { YRoom } from "./room";
+import type { Conn } from "./room";
 
 /**
- * wmaps signaling relay.
- *
- *   GET /signal/:room  WebSocket. One Durable Object per map room; plain
- *                      topic pub/sub used by Trystero to exchange (encrypted)
- *                      WebRTC offers/answers. Document data never comes here.
- *   GET /ice           ICE servers for RTCPeerConnection: Cloudflare STUN, plus
- *                      short-lived Cloudflare TURN credentials when the
- *                      TURN_KEY_ID / TURN_KEY_API_TOKEN secrets are set.
+ * wmaps relay: GET /sync/:room opens a WebSocket into that map's Durable
+ * Object, which holds the Yjs document, relays edits and cursors, and saves
+ * the document to its SQLite storage.
  */
 
 export interface Env {
-  SIGNAL_ROOM: DurableObjectNamespace<SignalRoom>;
+  MAP_ROOM: DurableObjectNamespace<MapRoom>;
   ALLOWED_ORIGINS: string;
-  TURN_KEY_ID?: string;
-  TURN_KEY_API_TOKEN?: string;
 }
 
-const ROOM_ID = /^[a-f0-9]{16,64}$/;
-const STUN: RTCIceServerLike = { urls: ["stun:stun.cloudflare.com:3478"] };
-const TURN_TTL_SECONDS = 4 * 60 * 60;
-
-type RTCIceServerLike = {
-  urls: string | string[];
-  username?: string;
-  credential?: string;
-};
+const ROOM_PATH = /^\/sync\/([a-f0-9]{32})$/;
+const MAX_SOCKETS = 64;
+const MAX_MESSAGE_BYTES = 1024 * 1024;
+/** SQLite-backed Durable Object values are capped at 2 MB. */
+const MAX_DOC_BYTES = 2 * 1024 * 1024 - 1024;
+const SAVE_DELAY_MS = 2_000;
+const DOC_KEY = "doc";
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    const url = new URL(req.url);
-    const origin = req.headers.get("Origin");
-    const allowed = isAllowedOrigin(origin, env);
-
-    if (req.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: cors(origin, allowed) });
-    }
-
-    if (url.pathname === "/ice" && req.method === "GET") {
-      if (!allowed) return new Response("Forbidden", { status: 403 });
-      return Response.json(
-        { iceServers: await iceServers(env) },
-        {
-          headers: {
-            ...cors(origin, allowed),
-            // Credentials are per-visitor; never cache in shared caches.
-            "Cache-Control": "private, max-age=600",
-          },
-        }
-      );
-    }
-
-    const match = url.pathname.match(/^\/signal\/([^/]+)$/);
-    if (match) {
-      if (!allowed) return new Response("Forbidden", { status: 403 });
-      if (!ROOM_ID.test(match[1])) {
-        return new Response("Bad room id", { status: 400 });
-      }
-      if (req.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
-        return new Response("Expected WebSocket", { status: 426 });
-      }
-      const stub = env.SIGNAL_ROOM.get(env.SIGNAL_ROOM.idFromName(match[1]));
-      return stub.fetch(req);
-    }
-
-    if (url.pathname === "/") return new Response("wmaps relay ok\n");
-    return new Response("Not found", { status: 404 });
+    const room = new URL(req.url).pathname.match(ROOM_PATH)?.[1];
+    if (!room) return new Response("wmaps relay\n", { status: 404 });
+    const refusal = refuse(req, env);
+    if (refusal) return refusal;
+    return env.MAP_ROOM.get(env.MAP_ROOM.idFromName(room)).fetch(req);
   },
 } satisfies ExportedHandler<Env>;
 
-/** Wildcards like https://*--wmaps.netlify.app cover deploy previews. */
-function isAllowedOrigin(origin: string | null, env: Env): boolean {
-  if (!origin) return false;
-  return env.ALLOWED_ORIGINS.split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .some((pattern) => {
-      if (!pattern.includes("*")) return pattern === origin;
-      const re = new RegExp(
-        "^" +
-          pattern
-            .split("*")
-            .map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
-            .join("[a-z0-9-]+") +
-          "$"
-      );
-      return re.test(origin);
-    });
-}
-
-function cors(origin: string | null, allowed: boolean): Record<string, string> {
-  return allowed && origin
-    ? {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        Vary: "Origin",
-      }
-    : { Vary: "Origin" };
-}
-
-async function iceServers(env: Env): Promise<RTCIceServerLike[]> {
-  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return [STUN];
-  try {
-    const res = await fetch(
-      `https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ttl: TURN_TTL_SECONDS }),
-      }
-    );
-    if (!res.ok) throw new Error(`TURN API ${res.status}`);
-    const body = (await res.json()) as { iceServers: RTCIceServerLike[] };
-    // Port 53 is blocked by browsers and just makes ICE wait for a timeout.
-    return body.iceServers.map((s) => ({
-      ...s,
-      urls: [s.urls].flat().filter((u) => !/:53(\?|$)/.test(u)),
-    }));
-  } catch (err) {
-    console.error("TURN credential request failed", err);
-    return [STUN];
+function refuse(req: Request, env: Env): Response | null {
+  if (!isAllowedOrigin(req.headers.get("Origin"), env.ALLOWED_ORIGINS)) {
+    return new Response("Forbidden", { status: 403 });
   }
+  const upgrade = req.headers.get("Upgrade")?.toLowerCase();
+  return upgrade === "websocket" ? null : new Response("Expected WebSocket", { status: 426 });
 }
 
-// ---------------------------------------------------------------------------
+export class MapRoom extends DurableObject<Env> {
+  private readonly room: YRoom;
+  private readonly conns = new WeakMap<WebSocket, Conn>();
+  private savePending = false;
 
-const MAX_MESSAGE_BYTES = 64 * 1024;
-const MAX_TOPICS_PER_SOCKET = 16;
-const MAX_SOCKETS_PER_ROOM = 64;
-
-type Attachment = { topics: string[] };
-type ClientMessage =
-  | { type: "subscribe" | "unsubscribe"; topic: string }
-  | { type: "publish"; topic: string; payload: unknown };
-
-/**
- * One instance per map. Uses the WebSocket Hibernation API so idle rooms cost
- * no duration; keepalive pings are answered by the runtime without waking us.
- */
-export class SignalRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    ctx.setWebSocketAutoResponse(
-      new WebSocketRequestResponsePair("ping", "pong")
+    // Answered by the runtime, so keepalives don't wake a hibernating room.
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+    this.room = new YRoom(
+      () => ctx.getWebSockets().map((ws) => this.conn(ws)),
+      () => this.scheduleSave()
+    );
+    void ctx.blockConcurrencyWhile(async () =>
+      this.room.load(await ctx.storage.get<Uint8Array>(DOC_KEY))
     );
   }
 
-  async fetch(_req: Request): Promise<Response> {
-    if (this.ctx.getWebSockets().length >= MAX_SOCKETS_PER_ROOM) {
+  async fetch(): Promise<Response> {
+    if (this.ctx.getWebSockets().length >= MAX_SOCKETS) {
       return new Response("Room full", { status: 429 });
     }
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ topics: [] } satisfies Attachment);
+    this.room.join(this.conn(server));
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
-    if (typeof raw !== "string" || raw.length > MAX_MESSAGE_BYTES) return;
-    let msg: ClientMessage;
-    try {
-      msg = JSON.parse(raw);
-    } catch {
-      return;
-    }
-    if (!msg || typeof msg.topic !== "string" || msg.topic.length > 256) return;
-
-    const state = (ws.deserializeAttachment() as Attachment) ?? { topics: [] };
-
-    switch (msg.type) {
-      case "subscribe":
-        if (
-          !state.topics.includes(msg.topic) &&
-          state.topics.length < MAX_TOPICS_PER_SOCKET
-        ) {
-          state.topics.push(msg.topic);
-          ws.serializeAttachment(state);
-        }
-        return;
-      case "unsubscribe":
-        state.topics = state.topics.filter((t) => t !== msg.topic);
-        ws.serializeAttachment(state);
-        return;
-      case "publish": {
-        const out = JSON.stringify({ topic: msg.topic, payload: msg.payload });
-        for (const peer of this.ctx.getWebSockets()) {
-          if (peer === ws) continue;
-          const peerState = peer.deserializeAttachment() as Attachment | null;
-          if (!peerState?.topics.includes(msg.topic)) continue;
-          try {
-            peer.send(out);
-          } catch {
-            // Socket is closing; the runtime will call webSocketClose.
-          }
-        }
-        return;
-      }
-    }
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
+    if (typeof message === "string" || message.byteLength > MAX_MESSAGE_BYTES) return;
+    this.room.receive(this.conn(ws), new Uint8Array(message));
   }
 
-  async webSocketClose(ws: WebSocket, code: number, reason: string) {
-    try {
-      ws.close(code, reason);
-    } catch {
-      // already closed
-    }
+  async webSocketClose(ws: WebSocket) {
+    this.room.leave(this.conn(ws));
+    ws.close();
+    if (this.ctx.getWebSockets().length <= 1) await this.save();
   }
 
   async webSocketError(ws: WebSocket) {
-    try {
-      ws.close(1011, "error");
-    } catch {
-      // already closed
+    await this.webSocketClose(ws);
+  }
+
+  async alarm() {
+    await this.save();
+  }
+
+  private scheduleSave() {
+    if (this.savePending) return;
+    this.savePending = true;
+    void this.ctx.storage.setAlarm(Date.now() + SAVE_DELAY_MS);
+  }
+
+  private async save() {
+    this.savePending = false;
+    const snapshot = this.room.snapshot();
+    if (snapshot.byteLength > MAX_DOC_BYTES) {
+      console.error(`doc too large to save: ${snapshot.byteLength} bytes`);
+      return;
     }
+    await this.ctx.storage.put(DOC_KEY, snapshot);
+  }
+
+  /** Wraps a socket; the client list lives in its attachment to survive hibernation. */
+  private conn(ws: WebSocket): Conn {
+    let conn = this.conns.get(ws);
+    if (!conn) {
+      conn = {
+        send: (data) => ws.send(data),
+        clients: () => (ws.deserializeAttachment() as Record<number, number>) ?? {},
+        setClients: (clients) => ws.serializeAttachment(clients),
+      };
+      this.conns.set(ws, conn);
+    }
+    return conn;
   }
 }
