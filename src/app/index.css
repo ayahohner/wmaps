@@ -198,16 +198,19 @@ input {
   position: absolute; top: 0; bottom: 15.5px; width: 1px;
   background: repeating-linear-gradient(to top, #c4c4c8 0 4px, transparent 4px 8px);
 }
-.axis-x-stage { position: absolute; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; }
+/* Labels sit just right of their stage line (Genesis: of the visibility axis). */
+.axis-x-stage { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding-left: 2px; }
+.axis-x-stage.first { padding-left: 10px; }
 .axis-x-label { position: relative; pointer-events: auto; cursor: default; padding: 0 4px; border-radius: 3px; }
 .axis-x-label:hover, .axis-x-label:focus-visible { color: #18181b; outline: none; }
 .axis-x-popover {
-  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 0;
   z-index: 5; padding: 6px 8px; border-radius: 8px; background: #fff; color: #18181b;
   box-shadow: 0 6px 24px #0003; font-size: 12px; white-space: nowrap;
 }
-.axis-x-stage.first .axis-x-popover { left: 0; transform: none; }
-.axis-x-stage.last .axis-x-popover { left: auto; right: 0; transform: none; }
+/* Right-align the last popover only when its stage is too narrow to fit it. */
+.axis-x-stage.last { container-type: inline-size; }
+@container (max-width: 200px) { .axis-x-popover { left: auto; right: 0; } }
 .axis-x-label:hover .axis-x-popover, .axis-x-label:focus-visible .axis-x-popover { display: block; }
 .axis-x-popover th { text-align: left; font-weight: 400; color: var(--axis-text); padding: 2px 12px 2px 0; }
 .axis-x-popover td { padding: 2px 0; }
