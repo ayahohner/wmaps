@@ -50,6 +50,7 @@ See [relay/README.md](relay/README.md) for the protocol, limits, and deployment.
 | Env var | Default | Purpose |
 | --- | --- | --- |
 | `VITE_SYNC_RELAY_URL` | `https://wmaps-relay.innerlattice.workers.dev` | Signaling and storage relay |
+| `VITE_RENDER_INDICATOR` | unset | `true` draws a render counter in the canvas corner |
 
 To develop against a local relay: `yarn relay:dev`, then run the app with
 `VITE_SYNC_RELAY_URL=http://localhost:8787 yarn dev`. To try multiplayer

@@ -73,24 +73,14 @@ class MapSingleton extends Application {
   }
 
   private setup(): void {
-    //Set up custom renderer
-    if (import.meta.env.VITE_DEBUG_ENABLED === "true") {
-      this.ticker.add(() => {
-        // Manually render when something has changed
-        if (this.dirty) {
-          this.renderIndicator.onRender();
-          this.render();
-          this.dirty = false;
-        }
-      });
-    } else {
-      this.ticker.add(() => {
-        if (this.dirty) {
-          this.render();
-          this.dirty = false;
-        }
-      });
-    }
+    // Manually render only when something has changed
+    this.ticker.add(() => {
+      if (this.dirty) {
+        this.renderIndicator.onRender();
+        this.render();
+        this.dirty = false;
+      }
+    });
 
     // Create a font for usage
     BitmapFont.install({
@@ -110,10 +100,7 @@ class MapSingleton extends Application {
     this.graphContainer.sortableChildren = true; // make zIndex work
     this.stage.addChild(SelectionHandler());
 
-    // Render indicator
-    if (import.meta.env.VITE_DEBUG_ENABLED === "true") {
-      this.stage.addChild(this.renderIndicator.r);
-    }
+    if (this.renderIndicator.enabled) this.stage.addChild(this.renderIndicator.r);
 
     this.canvas.addEventListener("mousedown", (e: MouseEvent) => {
       const cursorPosition = { x: e.offsetX, y: e.offsetY };
