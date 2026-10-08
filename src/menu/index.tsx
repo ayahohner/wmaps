@@ -13,6 +13,7 @@ import {
   XMarkIcon,
   QuestionMarkCircleIcon,
   LinkIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 
 import { copyTextToClipboard } from "../app/utilities/Clipboard";
@@ -76,6 +77,17 @@ export const ProjectMenu = () => {
               {/* Right Menu */}
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
                 <CollaborationBadge />
+                <a
+                  href="/"
+                  aria-label="New map"
+                  className="mr-2 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  <PlusIcon
+                    className="-ml-1 mr-2 h-5 w-5 text-gray-500"
+                    aria-hidden="true"
+                  />
+                  New
+                </a>
                 <ShareButton />
 
                 <HelpMenu handleOnClick={handleOnClick} />
