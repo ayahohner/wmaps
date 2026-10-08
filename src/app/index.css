@@ -169,3 +169,43 @@ input {
   width: 10px; height: 12px; flex: none;
   clip-path: polygon(0 0, 100% 65%, 0 100%);
 }
+
+/* Map axes: a passive overlay; only the stage labels take the pointer. */
+.map-axes {
+  position: absolute; inset: 0; pointer-events: none; line-height: 1.3;
+  --axis-color: #a1a1aa; --axis-text: #71717a;
+  font-family: Arial, sans-serif; font-size: 11px; color: var(--axis-text);
+}
+.axis-x {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 20px;
+  border-top: 1px solid var(--axis-color);
+}
+.axis-x-notch {
+  position: absolute; top: -4px; width: 1px; height: 8px; background: var(--axis-color);
+}
+.axis-x-stage { position: absolute; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; }
+.axis-x-label { position: relative; pointer-events: auto; cursor: default; padding: 0 4px; border-radius: 3px; }
+.axis-x-label:hover, .axis-x-label:focus-visible { color: #18181b; outline: none; }
+.axis-x-popover {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  z-index: 5; padding: 6px 8px; border-radius: 8px; background: #fff; color: #18181b;
+  box-shadow: 0 6px 24px #0003; font-size: 12px; white-space: nowrap;
+}
+.axis-x-stage.first .axis-x-popover { left: 0; transform: none; }
+.axis-x-stage.last .axis-x-popover { left: auto; right: 0; transform: none; }
+.axis-x-label:hover .axis-x-popover, .axis-x-label:focus-visible .axis-x-popover { display: block; }
+.axis-x-popover th { text-align: left; font-weight: 400; color: var(--axis-text); padding: 2px 12px 2px 0; }
+.axis-x-popover td { padding: 2px 0; }
+.axis-y {
+  position: absolute; left: 8px; top: 4px; bottom: 20px; width: 1px; background: var(--axis-color);
+}
+/* Arrowhead: two short strokes meeting at the top of the line. */
+.axis-y::before {
+  content: ""; position: absolute; top: 0; left: -3px; width: 6px; height: 6px;
+  border-top: 1px solid var(--axis-color); border-left: 1px solid var(--axis-color);
+  transform: translateY(0.5px) rotate(45deg); transform-origin: center;
+}
+.axis-y-label {
+  position: absolute; top: 12px; left: 4px;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+}
