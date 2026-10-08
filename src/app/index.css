@@ -122,7 +122,11 @@ input {
 /* Presence never intercepts map interaction or enters document history. */
 #map { position: relative; }
 .canvas-presence { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.remote-pointer { position: absolute; line-height: 1.3; }
+.remote-pointer {
+  position: absolute; line-height: 1.3;
+  /* Match the 50 ms canvas presence publish interval. */
+  transition: left 50ms linear, top 50ms linear;
+}
 .remote-pointer-arrow {
   display: block; width: 16px; height: 20px; background: var(--pointer-color);
   clip-path: polygon(0 0, 100% 65%, 55% 65%, 35% 100%);
