@@ -1,0 +1,23 @@
+// Tea shop: the "hello world" of Wardley Mapping
+// name [visibility, evolution], needer.needed
+
+Business [95, 48]
+Public [95, 72]
+Cup of Tea [80, 62]
+Cup [67, 82]
+Tea [63, 70]
+Staff [58, 38]
+Hot Water [47, 74]
+Water [28, 90]
+Kettle [36, 26]
+Power [12, 84]
+
+Business.Cup of Tea
+Public.Cup of Tea
+Cup of Tea.Cup
+Cup of Tea.Tea
+Cup of Tea.Hot Water
+Cup of Tea.Staff
+Hot Water.Water
+Hot Water.Kettle
+Kettle.Power
