@@ -1,6 +1,6 @@
 /**
  * Evolution stages and the names they go by for each kind of component
- * (Wardley's characteristics table). Stages split the x-axis into quarters.
+ * (Wardley's characteristics table).
  */
 export const evolutionStages = [
   {
@@ -41,20 +41,24 @@ export const evolutionStages = [
   },
 ] as const;
 
+/** Evolution percentages where each stage after Genesis begins. */
+export const stageBoundaries = [17.4, 40, 70] as const;
+
+const stageEdges = [0, ...stageBoundaries, 100];
+
 /** Evolution (x) and visibility (y) axes drawn over the map canvas. */
 export function MapAxes() {
-  const width = 100 / evolutionStages.length;
   return (
     <>
       <div className="axis-y" aria-label="Visibility">
         <span className="axis-y-label">Visibility</span>
       </div>
       <div className="axis-x" aria-label="Evolution">
-        {evolutionStages.slice(1).map((_, i) => (
+        {stageBoundaries.map((boundary) => (
           <span
-            key={i}
+            key={boundary}
             className="axis-x-notch"
-            style={{ left: `${(i + 1) * width}%` }}
+            style={{ left: `${boundary}%` }}
           />
         ))}
         {evolutionStages.map((stage, i) => (
@@ -63,7 +67,10 @@ export function MapAxes() {
             className={`axis-x-stage${i === 0 ? " first" : ""}${
               i === evolutionStages.length - 1 ? " last" : ""
             }`}
-            style={{ left: `${i * width}%`, width: `${width}%` }}
+            style={{
+              left: `${stageEdges[i]}%`,
+              width: `${stageEdges[i + 1] - stageEdges[i]}%`,
+            }}
           >
             <span className="axis-x-label" tabIndex={0}>
               {stage.name}

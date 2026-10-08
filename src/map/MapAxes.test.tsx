@@ -9,7 +9,7 @@ it("labels each evolution stage with its alternatives and notches the divisions"
   document.body.append(host);
   await act(async () => createRoot(host).render(<MapAxes />));
   const notches = [...host.querySelectorAll<HTMLElement>(".axis-x-notch")];
-  expect(notches.map((n) => n.style.left)).toEqual(["25%", "50%", "75%"]);
+  expect(notches.map((n) => n.style.left)).toEqual(["17.4%", "40%", "70%"]);
   const labels = [...host.querySelectorAll(".axis-x-label")];
   expect(labels.map((l) => l.firstChild!.textContent)).toEqual([
     "Genesis",
