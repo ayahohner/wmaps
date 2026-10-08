@@ -55,3 +55,27 @@ it("keeps the badge in the project menu alongside navigation and sharing", async
   await act(async () => root.unmount());
   host.remove();
 });
+
+it("keeps the menu mounted on a first visit and after dismissing welcome help", async () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  const { ProjectMenu } = await import("./index");
+  localStorage.removeItem("shouldShowHelp");
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<ProjectMenu />));
+    expect(host.querySelector("nav")).not.toBeNull();
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog?.textContent).toContain("Welcome to MapTogether Alpha");
+    const getStarted = dialog!.querySelector("button")!;
+    await act(async () => getStarted.click());
+    expect(localStorage.getItem("shouldShowHelp")).toBe("false");
+    expect(host.querySelector('[aria-label="New map"]')).not.toBeNull();
+    expect(host.textContent).toContain("Share");
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    localStorage.removeItem("shouldShowHelp");
+  }
+});
