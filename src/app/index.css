@@ -178,18 +178,21 @@ input {
   --axis-color: #a1a1aa; --axis-text: #71717a;
   font-family: Arial, sans-serif; font-size: 11px; color: var(--axis-text);
 }
-.axis-x {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 20px;
-  border-top: 1px solid var(--axis-color);
+.axis-x { position: absolute; left: 0; right: 0; bottom: 0; height: 20px; }
+/* The line starts at the visibility axis; stages still span the full width
+   so they line up with component evolution coordinates. */
+.axis-x::before {
+  content: ""; position: absolute; top: 0; left: 8px; right: 0; height: 1px;
+  background: var(--axis-color);
 }
 /* Arrowhead: mirrors the visibility axis, pointing right along the x-axis. */
 .axis-x::after {
-  content: ""; position: absolute; top: -4px; right: 2px; width: 6px; height: 6px;
+  content: ""; position: absolute; top: -2.5px; right: 2px; width: 6px; height: 6px;
   border-top: 1px solid var(--axis-color); border-right: 1px solid var(--axis-color);
   transform: translateX(-0.5px) rotate(45deg); transform-origin: center;
 }
 .axis-x-notch {
-  position: absolute; top: -4px; width: 1px; height: 8px; background: var(--axis-color);
+  position: absolute; top: -3.5px; width: 1px; height: 8px; background: var(--axis-color);
 }
 /* Dashed stage boundaries running the full height of the map. */
 .axis-x-divider {
