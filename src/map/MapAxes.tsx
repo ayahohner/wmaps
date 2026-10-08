@@ -68,13 +68,6 @@ export function MapAxes() {
         <span className="axis-y-label">Visibility</span>
       </div>
       <div className="axis-x" aria-label="Evolution">
-        {stageBoundaries.map((boundary) => (
-          <span
-            key={boundary}
-            className="axis-x-notch"
-            style={{ left: `${boundary}%` }}
-          />
-        ))}
         {evolutionStages.map((stage, i) => (
           <span
             key={stage.name}
