@@ -153,12 +153,17 @@ input {
 .sync-disconnected, .sync-error { background: #f87171; }
 .collaboration-popover {
   position: absolute; right: 0; top: 100%; z-index: 50; width: max-content;
-  max-width: calc(100vw - 24px); padding: 14px; border-radius: 8px;
+  max-width: calc(100vw - 24px); padding: 6px; border-radius: 8px;
   background: #fff; color: #18181b; box-shadow: 0 6px 24px #0003;
   font-size: 12px; line-height: 1.5;
 }
 .collaboration-popover ul { list-style: none; padding: 0; margin: 0; max-height: 240px; overflow: auto; }
-.collaboration-popover li { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; overflow-wrap: anywhere; }
+.collaboration-popover li { display: flex; gap: 8px; align-items: center; padding: 6px 8px; overflow-wrap: anywhere; }
 @media (max-width: 639px) {
   .collaboration-popover { position: fixed; top: 48px; right: 12px; }
+}
+
+.presence-triangle {
+  width: 10px; height: 12px; flex: none;
+  clip-path: polygon(0 0, 100% 65%, 0 100%);
 }

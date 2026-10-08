@@ -61,13 +61,16 @@ function PeopleList({
   users,
 }: {
   id: string;
-  users: readonly { id: number; name: string }[];
+  users: readonly { id: number; name: string; color: string }[];
 }) {
   return (
     <div id={id} className="collaboration-popover">
       <ul>
         {users.map((user) => (
-          <li key={user.id}>{user.name}</li>
+          <li key={user.id}>
+            <span className="presence-triangle" style={{ backgroundColor: user.color }} aria-hidden="true" />
+            <span>{user.name}</span>
+          </li>
         ))}
       </ul>
     </div>
