@@ -34,6 +34,37 @@ yarn test:live      # WebRTC + saving against the deployed relay
 Secrets (`wrangler secret put`): `TURN_KEY_ID`, `TURN_KEY_API_TOKEN`, from a
 Cloudflare Realtime TURN key. Without them `/ice` returns STUN only.
 
+### Automatic deployment
+
+[Deploy Cloudflare relay](../.github/workflows/deploy-relay.yml) validates pull
+requests and deploys pushes to `main` when relay code, the client sync protocol,
+shared dependencies, Node/Yarn configuration, test configuration, or the workflow
+changes. UI-only changes do not redeploy the relay. It can also be run manually
+from GitHub Actions on `main`.
+
+`wrangler.jsonc` is the infrastructure definition: Worker name, account, Durable
+Object binding and migrations, allowed origins, and observability are versioned
+there. CI uses the locked Wrangler dependency and runs type checks, relay/sync
+tests, and a dry-run bundle before deployment. Deployments are serialized; queued
+runs and manual reruns check out current `main`. A live test then verifies peer sync, save
+acknowledgements, and reloading saved data in an isolated test map. A failed live
+test marks the run failed; it does not automatically roll back database migrations.
+
+One-time authentication setup:
+
+1. Create a Cloudflare Workers deployment API token, restricted to the account
+   in `wrangler.jsonc`, following the
+   [Cloudflare GitHub Actions guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/).
+2. Add it as the repository Actions secret `CLOUDFLARE_API_TOKEN` in
+   [GitHub settings](https://github.com/ayahohner/wmaps/settings/secrets/actions).
+   Local `wrangler login` credentials are not available to GitHub runners.
+3. Run **Deploy Cloudflare relay** on `main` and confirm the deployment and live
+   verification steps pass.
+
+The token is supplied only to the deployment step on `main`; pull requests run
+validation without Cloudflare credentials. Existing TURN secrets stay in
+Cloudflare and do not need to be copied into GitHub.
+
 ## Limits and costs
 
 64 editors per map, 64 KB signaling messages, 1 MB sync messages, ~2 MB saved

@@ -1,0 +1,74 @@
+name: Deploy Cloudflare relay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "relay/**"
+      - "src/sync/**"
+      - "package.json"
+      - "yarn.lock"
+      - ".yarnrc.yml"
+      - ".yarn/**"
+      - ".nvmrc"
+      - "vite.config.ts"
+      - ".github/workflows/deploy-relay.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "relay/**"
+      - "src/sync/**"
+      - "package.json"
+      - "yarn.lock"
+      - ".yarnrc.yml"
+      - ".yarn/**"
+      - ".nvmrc"
+      - "vite.config.ts"
+      - ".github/workflows/deploy-relay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Finish an in-progress deployment before starting another one.
+concurrency:
+  group: cloudflare-relay-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Queued runs and manual reruns validate/deploy the current main.
+          ref: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'main' || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: node .yarn/releases/yarn-4.18.0.cjs install --immutable
+      - name: Check relay types
+        run: node .yarn/releases/yarn-4.18.0.cjs tsc -p relay/tsconfig.json
+      - name: Test relay and sync protocol
+        run: node .yarn/releases/yarn-4.18.0.cjs vitest run relay/src src/sync
+      - name: Validate Worker bundle and infrastructure configuration
+        run: node .yarn/releases/yarn-4.18.0.cjs relay:deploy --dry-run
+      - name: Deploy production relay
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Set the repository Actions secret CLOUDFLARE_API_TOKEN to a Cloudflare Workers deployment token."
+            exit 1
+          fi
+          node .yarn/releases/yarn-4.18.0.cjs relay:deploy
+      - name: Verify deployed sync and durable save receipts
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: node .yarn/releases/yarn-4.18.0.cjs test:live
