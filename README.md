@@ -1,25 +1,88 @@
-# wmaps
-Created with CodeSandbox
+# MapTogether
 
-## Multiplayer
+**Multiplayer Wardley Mapping in your browser.** Open a link, start mapping, and
+see your team's edits and cursors live.
 
-Editors on the same map (`/<map-id>`) sync live with Yjs over WebRTC, peer
-to peer. Our Cloudflare relay (`relay/`) does signaling, hands out TURN
-credentials, and saves and loads each map in a Durable Object.
+[![Open maptogether.io](https://img.shields.io/website?url=https%3A%2F%2Fmaptogether.io&label=maptogether.io&up_message=live&style=flat-square)](https://maptogether.io)
+[![Wardley Maps](https://img.shields.io/badge/strategy-Wardley%20Maps-ee6352?style=flat-square)](https://learnwardleymapping.com/)
+[![Multiplayer: Yjs + WebRTC](https://img.shields.io/badge/multiplayer-Yjs%20%2B%20WebRTC-30bced?style=flat-square)](CONTRIBUTING.md#multiplayer)
+[![Relay on Cloudflare Durable Objects](https://img.shields.io/badge/relay-Durable%20Objects-F38020?style=flat-square&logo=cloudflare&logoColor=white)](relay/README.md)
+[![Deploy Cloudflare relay](https://img.shields.io/github/actions/workflow/status/ayahohner/wmaps/deploy-relay.yml?branch=main&label=relay%20deploy&style=flat-square)](https://github.com/ayahohner/wmaps/actions/workflows/deploy-relay.yml)
 
-| Env var | Default | Purpose |
-| --- | --- | --- |
-| `VITE_SYNC_RELAY_URL` | `https://wmaps-relay.innerlattice.workers.dev` | Signaling and storage relay |
+![Three people mapping a tea shop together in MapTogether, each with a named cursor on the canvas](docs/multiplayer-screenshot.png)
 
-To develop against a local relay: `yarn relay:dev`, then run the app with
-`VITE_SYNC_RELAY_URL=http://localhost:8787 yarn dev`.
+<sub>Three people on the same map. Everyone sees the others' cursors, and every
+edit, on the canvas and in the code, shows up for everyone at once.</sub>
 
-## Code quality gate
+## Why MapTogether
 
-`yarn quality` checks the code you changed (against `origin/HEAD`, plus
-uncommitted and new files): every edited function needs CRAP ≤ 8 and a
-maintainability index above 75, and every edited file an MI above 75
-(171-point scale, as escomplex/Plato). Coverage comes from the Vitest suite.
+A [Wardley Map](https://learnwardleymapping.com/) shows a value chain against how
+evolved each part is, from genesis to commodity. Its value comes from the
+conversation it starts, so a map should be something a team builds together, not
+a picture one person emails around.
 
-It runs automatically before `git push` (`.githooks/pre-push`, enabled by
-`yarn install`). Use `--verbose` to see every function, `--help` for options.
+- **Multiplayer from the first click.** Every map has its own URL. Share it and
+  anyone with the link can edit with you. No accounts, no sign-up.
+- **Draw it or write it.** Drag components around the canvas, or edit the plain
+  text beside it. Both stay in sync, so you can sketch fast and fine-tune
+  precisely.
+- **See who's there.** Named, coloured cursors on the canvas and in the editor
+  show where everyone is working. Hover the people count to see who's on the map.
+- **Saved automatically.** Maps save as you go, with a status light that only
+  turns green once the save is confirmed.
+- **Fast.** Edits go directly between browsers (peer to peer), and the canvas
+  is drawn with WebGL.
+
+## Get started
+
+1. Go to **[maptogether.io](https://maptogether.io)**. You land on a new, empty map.
+2. Double-click the canvas, type a component name, and press Enter.
+3. Click **Share** to copy the link and send it to your team.
+
+| To | Do this |
+| --- | --- |
+| Add a component | Double-click the canvas, type a name, press Enter |
+| Rename a component | Double-click it |
+| Link two components | Hold Ctrl/Cmd, click the first, then the second |
+| Move components | Drag them |
+| Select several | Drag on the empty canvas; hold Shift to add to the selection |
+| Delete | Select, then press Delete or Backspace |
+| Start a new map | Click **New** |
+
+## Try the sample map
+
+Paste [`examples/tea-shop.twm`](examples/tea-shop.twm) into the editor of a new
+map to get the tea shop above, the classic first Wardley Map. A trimmed-down
+version looks like this:
+
+```text
+Business [95, 48]
+Public [95, 72]
+Cup of Tea [80, 62]
+Kettle [36, 26]
+Power [12, 84]
+
+Business.Cup of Tea
+Public.Cup of Tea
+Cup of Tea.Kettle
+Kettle.Power
+```
+
+The text syntax is small:
+
+- `name [visibility, evolution]` places a component. Both numbers run from 0 to
+  100: visibility from hidden infrastructure (0) up to the user (100), and
+  evolution from genesis (0) across to commodity (100).
+- `needer.needed` draws a dependency between two components.
+- `name [v, e] { child [v, e] ... }` groups components into a pipeline.
+- `// comments` are ignored.
+
+## Status
+
+MapTogether is in **alpha**. Expect rough edges, and please
+[open an issue](https://github.com/ayahohner/wmaps/issues) when you hit one.
+
+## Contributing
+
+Development setup, architecture, the multiplayer relay, and the code quality gate
+are covered in [CONTRIBUTING.md](CONTRIBUTING.md).
