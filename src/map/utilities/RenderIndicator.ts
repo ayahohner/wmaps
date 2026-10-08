@@ -1,5 +1,7 @@
 import { Container, Graphics, BitmapText } from "pixi.js";
 
+/** Render-count overlay for profiling redraws. Opt-in via
+ *  VITE_RENDER_INDICATOR so ordinary dev builds look like production. */
 export class RenderIndicator {
   /** Root container — Graphics no longer allows children in Pixi v8. */
   r = new Container();
@@ -8,7 +10,9 @@ export class RenderIndicator {
   counter = 0;
   text: BitmapText;
 
-  constructor() {
+  constructor(
+    readonly enabled = import.meta.env.VITE_RENDER_INDICATOR === "true"
+  ) {
     this.drawBackground();
 
     // Note: the "TitleFont" bitmap font is installed by MapSingleton during
@@ -34,6 +38,7 @@ export class RenderIndicator {
   }
 
   onRender() {
+    if (!this.enabled) return;
     this.drawBackground();
     this.text.text = this.counter.toString();
     this.filled = !this.filled;
