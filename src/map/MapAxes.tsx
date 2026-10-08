@@ -47,7 +47,7 @@ export const stageBoundaries = [17.4, 40, 70] as const;
 const stageEdges = [0, ...stageBoundaries, 100];
 
 /**
- * Stage boundaries, drawn beneath the (transparent) map canvas so
+ * Dashed stage boundaries, drawn beneath the (transparent) map canvas so
  * components and their labels paint over them.
  */
 export function StageDividers() {

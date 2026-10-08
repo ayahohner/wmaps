@@ -194,9 +194,10 @@ input {
 .axis-x-notch {
   position: absolute; top: -3.5px; width: 1px; height: 8px; background: var(--axis-color);
 }
-/* Stage boundaries running the full height of the map, lighter than the axes. */
+/* Dashed stage boundaries running the full height of the map. */
 .axis-x-divider {
-  position: absolute; top: 0; bottom: 20px; width: 1px; background: #d4d4d8;
+  position: absolute; top: 0; bottom: 20px; width: 1px;
+  background: repeating-linear-gradient(to bottom, var(--axis-color) 0 4px, transparent 4px 8px);
 }
 .axis-x-stage { position: absolute; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; }
 .axis-x-label { position: relative; pointer-events: auto; cursor: default; padding: 0 4px; border-radius: 3px; }
