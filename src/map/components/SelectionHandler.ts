@@ -12,19 +12,19 @@ export const SelectionHandler = () => {
       state.selectDrag.selectionStartPoint &&
       state.selectDrag.selectionCurrentPoint
     ) {
+      const start = state.selectDrag.selectionStartPoint;
+      const current = state.selectDrag.selectionCurrentPoint;
       component.clear();
       component.rect(
         0,
         0,
-        state.selectDrag.selectionCurrentPoint.x -
-          state.selectDrag.selectionStartPoint.x,
-        state.selectDrag.selectionCurrentPoint.y -
-          state.selectDrag.selectionStartPoint.y
+        Math.abs(current.x - start.x),
+        Math.abs(current.y - start.y)
       );
       component.fill({ color: 0x4597f7, alpha: 0.1 });
       component.stroke({ width: 1, color: 0x4597f7, alpha: 1 });
-      component.x = state.selectDrag.selectionStartPoint.x;
-      component.y = state.selectDrag.selectionStartPoint.y;
+      component.x = Math.min(start.x, current.x);
+      component.y = Math.min(start.y, current.y);
       component.visible = true;
       MapSingleton.dirty = true;
     }
