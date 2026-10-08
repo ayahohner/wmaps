@@ -35,14 +35,14 @@ export function CollaborationBadge() {
         if (event.key === "Escape") setOpen(false);
       }}
     >
-      <button
-        type="button"
-        className="collaboration-trigger"
-        aria-expanded={open}
-        aria-controls={id}
+      <span
+        className="collaboration-indicator"
+        role="group"
+        tabIndex={0}
+        aria-describedby={open ? id : undefined}
         aria-label="People"
+        title={labels[status]}
         onFocus={() => setOpen(true)}
-        onClick={() => setOpen(true)}
       >
         <span
           className={`sync-light sync-${status}`}
@@ -50,7 +50,7 @@ export function CollaborationBadge() {
           aria-label={labels[status]}
         />
         <span>{users.length}</span>
-      </button>
+      </span>
       {open && <PeopleList id={id} users={users} />}
     </div>
   );

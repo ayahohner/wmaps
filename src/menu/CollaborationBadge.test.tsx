@@ -15,22 +15,28 @@ it("shows only names in the hover panel and provides accessible save status", as
     { id: 456, name: "Calm Finch", color: "#ee6352", self: false },
   ];
   await act(async () => root.render(<CollaborationBadge />));
-  const button = host.querySelector("button")!;
-  expect(button.textContent).toBe("2");
-  expect(button.getAttribute("aria-label")).toBe("People");
+  const indicator = host.querySelector<HTMLElement>('[role="group"]')!;
+  expect(host.querySelector("button")).toBeNull();
+  expect(indicator.textContent).toBe("2");
+  expect(indicator.getAttribute("aria-label")).toBe("People");
+  expect(indicator.title).toBe("Saved");
   expect(host.querySelector(".sync-light")?.getAttribute("aria-label")).toBe(
     "Saved",
   );
-  await act(async () => button.focus());
+  await act(async () => indicator.focus());
   const panel = host.querySelector(".collaboration-popover")!;
   expect(panel.textContent).toBe("Quiet OtterCalm Finch");
   await act(async () =>
-    button.dispatchEvent(
+    indicator.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
     ),
   );
   expect(host.querySelector(".collaboration-popover")).toBeNull();
-  await act(async () => button.click());
+  await act(async () => indicator.click());
+  expect(host.querySelector(".collaboration-popover")).toBeNull();
+  await act(async () =>
+    indicator.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })),
+  );
   expect(host.querySelector(".collaboration-popover")).not.toBeNull();
   await act(async () =>
     document.body.dispatchEvent(

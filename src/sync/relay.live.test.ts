@@ -9,6 +9,7 @@ import { RTCPeerConnection } from "werift";
 import { expect, it } from "vitest";
 import { connectSync } from "./connect";
 import { until } from "./testing/fakeRelay";
+import type { SyncStatus } from "./SaveStatus";
 
 const RELAY = process.env.LIVE_RELAY;
 const ORIGIN = "https://maptogether.io";
@@ -22,13 +23,15 @@ class OriginWebSocket extends WebSocket {
 const join = async (mapId: string) => {
   const doc = new Y.Doc();
   const awareness = new Awareness(doc);
+  let status: SyncStatus = "connecting";
   const sync = await connectSync(doc, awareness, mapId, {
     relayUrl: RELAY,
     WebSocket: OriginWebSocket as unknown as typeof WebSocket,
     RTCPeerConnection: RTCPeerConnection as unknown as typeof globalThis.RTCPeerConnection,
     fetch: (url) => fetch(url, { headers: { Origin: ORIGIN } }),
+    onStatus: (next) => { status = next; },
   });
-  return { doc, awareness, sync, text: doc.getText("t") };
+  return { doc, awareness, sync, text: doc.getText("t"), get status() { return status; } };
 };
 
 it.skipIf(!RELAY)("syncs over WebRTC and saves to the Durable Object", async () => {
@@ -42,11 +45,12 @@ it.skipIf(!RELAY)("syncs over WebRTC and saves to the Durable Object", async () 
   await until(() => b.text.toString() === "hello");
   console.log(`peer edit after ${Date.now() - start} ms`);
 
-  await new Promise((r) => setTimeout(r, 500));
+  await until(() => a.status === "saved", 10000);
   a.sync.destroy();
   b.sync.destroy();
   await new Promise((r) => setTimeout(r, 3000)); // relay saves when the room empties
   const c = await join(mapId);
   await until(() => c.text.toString() === "hello", 10000);
+  await until(() => c.status === "saved", 10000);
   c.sync.destroy();
 }, 60000);
