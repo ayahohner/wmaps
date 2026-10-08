@@ -217,11 +217,11 @@ input {
 .axis-y {
   position: absolute; left: 8px; top: 4px; bottom: 20px; width: 1px; background: var(--axis-color);
 }
-/* Arrowhead: two short strokes meeting at the top of the line. */
+/* Arrowhead: two short strokes meeting at the top of the line, centred on it. */
 .axis-y::before {
-  content: ""; position: absolute; top: 0; left: -3px; width: 6px; height: 6px;
+  content: ""; position: absolute; top: 0; left: 50%; width: 6px; height: 6px;
   border-top: 1px solid var(--axis-color); border-left: 1px solid var(--axis-color);
-  transform: translateY(0.5px) rotate(45deg); transform-origin: center;
+  transform: translate(-50%, 0.5px) rotate(45deg); transform-origin: center;
 }
 .axis-y-label {
   position: absolute; top: 12px; left: 4px;
