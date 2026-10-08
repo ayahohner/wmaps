@@ -46,6 +46,20 @@ export const stageBoundaries = [17.4, 40, 70] as const;
 
 const stageEdges = [0, ...stageBoundaries, 100];
 
+/**
+ * Dashed stage boundaries, drawn beneath the (transparent) map canvas so
+ * components and their labels paint over them.
+ */
+export function StageDividers() {
+  return stageBoundaries.map((boundary) => (
+    <span
+      key={boundary}
+      className="axis-x-divider"
+      style={{ left: `${boundary}%` }}
+    />
+  ));
+}
+
 /** Evolution (x) and visibility (y) axes drawn over the map canvas. */
 export function MapAxes() {
   return (

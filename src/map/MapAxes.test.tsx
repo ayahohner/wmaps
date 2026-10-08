@@ -1,15 +1,24 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
-import { MapAxes } from "./MapAxes";
+import { MapAxes, StageDividers } from "./MapAxes";
 
 it("labels each evolution stage with its alternatives and notches the divisions", async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   const host = document.createElement("div");
   document.body.append(host);
-  await act(async () => createRoot(host).render(<MapAxes />));
+  await act(async () =>
+    createRoot(host).render(
+      <>
+        <StageDividers />
+        <MapAxes />
+      </>,
+    ),
+  );
   const notches = [...host.querySelectorAll<HTMLElement>(".axis-x-notch")];
   expect(notches.map((n) => n.style.left)).toEqual(["17.4%", "40%", "70%"]);
+  const dividers = [...host.querySelectorAll<HTMLElement>(".axis-x-divider")];
+  expect(dividers.map((d) => d.style.left)).toEqual(["17.4%", "40%", "70%"]);
   const labels = [...host.querySelectorAll(".axis-x-label")];
   expect(labels.map((l) => l.firstChild!.textContent)).toEqual([
     "Genesis",

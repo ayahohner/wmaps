@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import MapSingleton from "../map/components/MapSingleton";
 
 import { initializeCanvasPresence } from "../map/CanvasPresence";
-import { MapAxes } from "../map/MapAxes";
+import { MapAxes, StageDividers } from "../map/MapAxes";
 import { editorView, awareness } from "../editor/Editor";
 import { ProjectMenu } from "../menu";
 
@@ -46,6 +46,11 @@ const run = async (elementId: string) => {
 
   // Bind app view to root html element
   document.getElementById(elementId)?.appendChild(MapSingleton.canvas);
+
+  const dividers = document.createElement("div");
+  dividers.className = "map-axes";
+  MapSingleton.canvas.before(dividers);
+  createRoot(dividers).render(<StageDividers />);
 
   const axes = document.createElement("div");
   axes.className = "map-axes";
