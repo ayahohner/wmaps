@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import { collaboration } from "../sync/presence";
+import type { SyncStatus } from "../sync/SaveStatus";
 
 const labels = {
   connecting: "Connecting…",
@@ -44,15 +45,17 @@ export function CollaborationBadge() {
         title={labels[status]}
         onFocus={() => setOpen(true)}
       >
-        <span
-          className={`sync-light sync-${status}`}
-          role="img"
-          aria-label={labels[status]}
-        />
+        <SyncLight status={status} />
         <span>{users.length}</span>
       </span>
       {open && <PeopleList id={id} users={users} />}
     </div>
+  );
+}
+
+function SyncLight({ status }: { status: SyncStatus }) {
+  return (
+    <span className={`sync-light sync-${status}`} role="img" aria-label={labels[status]} />
   );
 }
 

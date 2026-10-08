@@ -134,8 +134,10 @@ input {
 }
 .remote-pointer-label {
   position: absolute; top: 18px; left: 12px; white-space: nowrap;
-  padding: 3px 6px; border-radius: 4px; border-left: 4px solid var(--pointer-color);
-  background: #18181b; color: white; font-size: 11px; max-width: 260px;
+  padding: 2px 4px; border-radius: 3px; border-left: 2px solid var(--pointer-color);
+  background: rgb(24 24 27 / 45%); color: white; opacity: 0.75;
+  /* TitleFont uses Pixi's default Arial face for canvas component labels. */
+  font-family: Arial, sans-serif; font-size: 11px; font-weight: 400; max-width: 260px;
   overflow: hidden; text-overflow: ellipsis;
 }
 .remote-pointer.near-right .remote-pointer-label { left: auto; right: 4px; }
