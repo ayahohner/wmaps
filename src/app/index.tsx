@@ -2,7 +2,8 @@ import { createRoot } from "react-dom/client";
 
 import MapSingleton from "../map/components/MapSingleton";
 
-import { editorView } from "../editor/Editor";
+import { initializeCanvasPresence } from "../map/CanvasPresence";
+import { editorView, awareness } from "../editor/Editor";
 import { ProjectMenu } from "../menu";
 
 import { setEditorText } from "../state/State";
@@ -44,6 +45,8 @@ const run = async (elementId: string) => {
 
   // Bind app view to root html element
   document.getElementById(elementId)?.appendChild(MapSingleton.canvas);
+
+  initializeCanvasPresence(MapSingleton.canvas, awareness);
 
   MapSingleton.handleResize();
 

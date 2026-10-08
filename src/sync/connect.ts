@@ -2,7 +2,8 @@ import type * as Y from "yjs";
 import type { Awareness } from "y-protocols/awareness";
 import { MapStorage } from "./MapStorage";
 import { PeerMesh, type RelayMessage } from "./PeerMesh";
-import { PeerOrigin, PeerSync } from "./PeerSync";
+import { PeerSync } from "./PeerSync";
+import { SaveStatus, type SyncStatus } from "./SaveStatus";
 import { RelaySocket } from "./RelaySocket";
 
 const DEFAULT_RELAY_URL = "https://wmaps-relay.innerlattice.workers.dev";
@@ -10,6 +11,7 @@ const STUN: RTCIceServer = { urls: ["stun:stun.cloudflare.com:3478"] };
 
 export interface SyncOptions {
   relayUrl?: string;
+  onStatus?: (status: SyncStatus) => void;
   /** Injected for tests and Node. */
   WebSocket?: typeof WebSocket;
   RTCPeerConnection?: typeof RTCPeerConnection;
@@ -25,10 +27,17 @@ export class MapSync {
   readonly storage: MapStorage;
   readonly mesh: PeerMesh;
   readonly socket: RelaySocket;
+  readonly saveStatus: SaveStatus;
+  private readonly changed: () => void;
 
-  constructor(url: string, doc: Y.Doc, awareness: Awareness, iceServers: RTCIceServer[], opts: SyncOptions = {}) {
+  constructor(url: string, private readonly doc: Y.Doc, awareness: Awareness, iceServers: RTCIceServer[], opts: SyncOptions = {}) {
+    const report = opts.onStatus ?? (() => {});
+    report("connecting");
+    this.saveStatus = new SaveStatus((message) => this.socket.sendJSON(message), report);
+    this.changed = () => this.saveStatus.changed();
     this.peers = new PeerSync(doc, awareness);
-    this.storage = new MapStorage(doc, (data) => this.socket.sendBinary(data), (o) => o instanceof PeerOrigin);
+    this.storage = new MapStorage(doc, (data) => this.socket.sendBinary(data));
+    doc.on("update", this.changed);
     this.mesh = new PeerMesh(
       (to, data) => this.socket.sendJSON({ type: "signal", to, data }),
       (peerId, channel) => this.peers.attach(peerId, channel),
@@ -37,15 +46,25 @@ export class MapSync {
     this.socket = new RelaySocket(
       url,
       {
-        onOpen: () => this.storage.start(),
-        onText: (message) => void this.mesh.handle(message as RelayMessage),
-        onBinary: (data) => this.storage.receive(data),
+        onOpen: () => { report("connecting"); this.storage.start(); },
+        onClose: () => this.saveStatus.disconnected(),
+        onError: () => report("error"),
+        onText: (message) => {
+          if (!message || typeof message !== "object") return;
+          if (!this.saveStatus.receive(message)) void this.mesh.handle(message as RelayMessage);
+        },
+        onBinary: (data) => {
+          this.storage.receive(data);
+          if (this.storage.loaded) this.saveStatus.loaded();
+        },
       },
       { WebSocket: opts.WebSocket }
     );
   }
 
   destroy() {
+    this.doc.off("update", this.changed);
+    this.saveStatus.destroy();
     this.socket.destroy();
     this.mesh.destroy();
     this.peers.destroy();

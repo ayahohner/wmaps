@@ -162,6 +162,51 @@ describe("MapRoom", async () => {
     expect(((await room.fetch()) as unknown as FakeResponse).status).toBe(429);
   });
 
+  it("acknowledges only after storage commits and reports write failures", async () => {
+    const state = fakeState();
+    const room = new MapRoom(state.ctx as any, env() as any);
+    await room.fetch();
+    const socket = state.sockets[0];
+    await room.webSocketMessage(socket as any, updateFrame("checkpoint"));
+    let finish!: () => void;
+    state.ctx.storage.put = () => new Promise<void>((resolve) => { finish = resolve; });
+    const request = room.webSocketMessage(socket as any, JSON.stringify({ type: "save", id: 7 }));
+    await Promise.resolve();
+    expect(socket.sent.some((m) => typeof m === "string" && m.includes('"saved"'))).toBe(false);
+    finish();
+    await request;
+    expect(JSON.parse(socket.sent.at(-1))).toEqual({ type: "saved", id: 7 });
+    state.ctx.storage.put = async () => { throw new Error("disk unavailable"); };
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    await room.webSocketMessage(socket as any, JSON.stringify({ type: "save", id: 8 }));
+    expect(JSON.parse(socket.sent.at(-1))).toEqual({ type: "save-error", id: 8 });
+    errors.mockRestore();
+  });
+
+  it("ignores malformed checkpoint requests without writing or acknowledging", async () => {
+    const state = fakeState();
+    const room = new MapRoom(state.ctx as any, env() as any);
+    await room.fetch();
+    const socket = state.sockets[0];
+    const before = socket.sent.length;
+    await room.webSocketMessage(socket as any, "not json");
+    await room.webSocketMessage(socket as any, JSON.stringify({ type: "save", id: -1 }));
+    await room.webSocketMessage(socket as any, JSON.stringify({ type: "save", id: "bad" }));
+    expect(socket.sent).toHaveLength(before);
+    expect(state.storage.size).toBe(0);
+  });
+
+  it("never confirms a rejected oversized upload", async () => {
+    const state = fakeState();
+    const room = new MapRoom(state.ctx as any, env() as any);
+    await room.fetch();
+    const socket = state.sockets[0];
+    await room.webSocketMessage(socket as any, new ArrayBuffer(2 * 1024 * 1024));
+    expect(socket.closed).toBe(true);
+    await room.webSocketMessage(socket as any, JSON.stringify({ type: "save", id: 1 }));
+    expect(JSON.parse(socket.sent.at(-1))).toEqual({ type: "save-error", id: 1 });
+  });
+
   it("skips saving a doc over the storage limit", async () => {
     const state = fakeState();
     const room = new MapRoom(state.ctx as any, env() as any);

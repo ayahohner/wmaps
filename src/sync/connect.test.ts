@@ -31,6 +31,11 @@ describe("MapSync", () => {
     await until(() => b.text.toString() === "hello");
     await until(() => b.awareness.getStates().get(a.doc.clientID)?.user?.name === "otter");
 
+    a.awareness.setLocalStateField("mapPointer", { x: 25, y: 70 });
+    await until(() => b.awareness.getStates().get(a.doc.clientID)?.mapPointer?.x === 25);
+    a.awareness.setLocalStateField("mapPointer", null);
+    await until(() => b.awareness.getStates().get(a.doc.clientID)?.mapPointer === null);
+
     a.sync.destroy();
     await until(() => !b.awareness.getStates().has(a.doc.clientID), 15000);
   }, 30000);

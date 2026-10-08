@@ -6,6 +6,8 @@
 
 export interface RelayHandlers {
   onOpen(): void;
+  onClose?(): void;
+  onError?(): void;
   onText(message: unknown): void;
   onBinary(data: Uint8Array): void;
 }
@@ -62,6 +64,10 @@ export class RelaySocket {
     ws.binaryType = "arraybuffer";
     ws.onopen = () => this.handleOpen();
     ws.onmessage = (e) => this.handleMessage(e.data);
+    ws.onerror = () => {
+      this.handlers.onError?.();
+      ws.close();
+    };
     ws.onclose = () => this.handleClose(ws);
     this.ws = ws;
   }
@@ -78,6 +84,7 @@ export class RelaySocket {
     if (ws !== this.ws) return;
     this.ws = null;
     this.connected = false;
+    this.handlers.onClose?.();
     this.clearTimers();
     if (this.destroyed) return;
     const delay = Math.min(this.opts.maxBackoffMs, 250 * 2 ** this.attempts++);

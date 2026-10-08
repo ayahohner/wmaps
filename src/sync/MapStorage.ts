@@ -8,7 +8,7 @@ export const MESSAGE_SYNC = 0;
 /**
  * Loads and saves the map through the relay's Durable Object, using the Yjs
  * sync protocol over the relay socket's binary frames. Each client uploads
- * its own edits; edits that arrived from peers are theirs to upload.
+ * all observed edits so its save receipt covers the complete visible map.
  */
 export class MapStorage {
   /** True once the saved copy has been applied. */
@@ -16,14 +16,14 @@ export class MapStorage {
 
   constructor(
     readonly doc: Y.Doc,
-    private readonly send: (data: Uint8Array) => void,
-    private readonly isFromPeer: (origin: unknown) => boolean
+    private readonly send: (data: Uint8Array) => void
   ) {
     doc.on("update", this.onUpdate);
   }
 
   /** Call when the relay socket opens: exchanges whatever either side lacks. */
   start() {
+    this.loaded = false;
     this.send(this.encode((e) => syncProtocol.writeSyncStep1(e, this.doc)));
   }
 
@@ -42,7 +42,7 @@ export class MapStorage {
   }
 
   private onUpdate = (update: Uint8Array, origin: unknown) => {
-    if (origin === this || this.isFromPeer(origin)) return;
+    if (origin === this) return;
     this.send(this.encode((e) => syncProtocol.writeUpdate(e, update)));
   };
 

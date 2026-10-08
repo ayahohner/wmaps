@@ -40,3 +40,20 @@ Cloudflare Realtime TURN key. Without them `/ice` returns STUN only.
 map. The Workers free plan covers 100k Durable Object requests a day; past
 that, Workers Paid is $5/month. TURN is billed per GB relayed, only for peers
 that can't connect directly.
+
+### Save receipts and presence
+
+Canvas mouse positions and anonymous user identities are ephemeral Yjs awareness
+messages sent over WebRTC, never saved in the map. The menu count includes the
+local session; each tab has its own Yjs client ID.
+
+After loading or editing, clients send a JSON `{ "type": "save", "id": N }`
+checkpoint after their binary uploads. The relay replies with `saved` and the same
+ID only after durable storage commits, or `save-error` on failure. Writes are
+serialized. Clients keep newer edits pending, retry failures, and show a red
+status on disconnect or a 15-second receipt timeout. Peer edits are also uploaded
+(idempotently) so a receipt covers the client's complete visible document.
+
+Deploy the updated relay before releasing the updated client. Older clients
+continue using the existing sync protocol. New clients connected to an older
+relay will show a save-confirmation error rather than incorrectly report saved.

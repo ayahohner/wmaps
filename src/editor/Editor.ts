@@ -2,6 +2,7 @@ import * as Y from "yjs";
 // @ts-ignore because no typings
 import { yCollab } from "y-codemirror.next";
 import { Awareness } from "y-protocols/awareness";
+import { bindPresence, collaboration } from "../sync/presence";
 import { connectSync } from "../sync/connect";
 
 import { ChangeSpec, EditorState } from "@codemirror/state";
@@ -85,13 +86,13 @@ export const multiplayerClientID = yDoc.clientID;
 
 export const undoManager = new Y.UndoManager(yText, { captureTimeout: 350 });
 
-const awareness = new Awareness(yDoc);
+export const awareness = new Awareness(yDoc);
 
-connectSync(yDoc, awareness, room)
+connectSync(yDoc, awareness, room, { onStatus: (status) => { collaboration.status = status; } })
   .then((sync) => {
     if (import.meta.env.VITE_DEBUG_ENABLED === "true") (window as any).__sync = sync;
   })
-  .catch((err) => console.error("[sync] failed to connect", err));
+  .catch((err) => { collaboration.status = "error"; console.error("[sync] failed to connect", err); });
 
 let username = localStorage.getItem("username");
 if (!username) {
@@ -107,9 +108,7 @@ awareness.setLocalStateField("user", {
   colorLight: userColor.light,
 });
 
-// awareness.on("change", (change: any, origin: any) => {
-//   console.log(change, origin);
-// });
+bindPresence(awareness);
 
 const linterExtension = linter(togetherScriptLinter());
 

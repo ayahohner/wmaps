@@ -118,3 +118,47 @@ input {
   overflow-y: auto;
   overflow-x: auto;
 }
+
+/* Presence never intercepts map interaction or enters document history. */
+#map { position: relative; }
+.canvas-presence { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.remote-pointer { position: absolute; line-height: 1.3; }
+.remote-pointer-arrow {
+  display: block; width: 16px; height: 20px; background: var(--pointer-color);
+  clip-path: polygon(0 0, 100% 65%, 55% 65%, 35% 100%);
+  filter: drop-shadow(0 0 1px black);
+}
+.remote-pointer-label {
+  position: absolute; top: 18px; left: 12px; white-space: nowrap;
+  padding: 3px 6px; border-radius: 4px; border-left: 4px solid var(--pointer-color);
+  background: #18181b; color: white; font-size: 11px; max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.remote-pointer.near-right .remote-pointer-label { left: auto; right: 4px; }
+.remote-pointer.near-bottom .remote-pointer-label { top: auto; bottom: 4px; }
+.collaboration-badge { position: relative; margin-right: 10px; }
+.collaboration-trigger {
+  display: flex; align-items: center; gap: 8px; min-height: 36px; min-width: 48px;
+  padding: 6px 10px; border-radius: 6px; background: #27272a; color: white;
+  font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.collaboration-trigger:hover { background: #18181b; }
+.collaboration-trigger:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .collaboration-trigger:active { scale: 0.96; }
+}
+.sync-light { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.sync-saved { background: #4ade80; }
+.sync-saving, .sync-connecting { background: #fb923c; }
+.sync-disconnected, .sync-error { background: #f87171; }
+.collaboration-popover {
+  position: absolute; right: 0; top: 100%; z-index: 50; width: max-content;
+  max-width: calc(100vw - 24px); padding: 14px; border-radius: 8px;
+  background: #fff; color: #18181b; box-shadow: 0 6px 24px #0003;
+  font-size: 12px; line-height: 1.5;
+}
+.collaboration-popover ul { list-style: none; padding: 0; margin: 0; max-height: 240px; overflow: auto; }
+.collaboration-popover li { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .collaboration-popover { position: fixed; top: 48px; right: 12px; }
+}
