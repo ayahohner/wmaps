@@ -13,7 +13,7 @@ it("labels each evolution stage with its alternatives and notches the divisions"
   const labels = [...host.querySelectorAll(".axis-x-label")];
   expect(labels.map((l) => l.firstChild!.textContent)).toEqual([
     "Genesis",
-    "Custom-Built",
+    "Custom",
     "Product",
     "Commodity",
   ]);

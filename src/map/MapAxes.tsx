@@ -13,7 +13,7 @@ export const evolutionStages = [
     ],
   },
   {
-    name: "Custom-Built",
+    name: "Custom",
     alternatives: [
       ["Activities", "Custom-Built"],
       ["Practices", "Emerging"],
