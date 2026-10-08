@@ -182,7 +182,7 @@ input {
 /* The line starts at the visibility axis; stages still span the full width
    so they line up with component evolution coordinates. */
 .axis-x::before {
-  content: ""; position: absolute; top: 0; left: 8px; right: 0; height: 1px;
+  content: ""; position: absolute; top: 0; left: 8px; right: 2px; height: 1px;
   background: var(--axis-color);
 }
 /* Arrowhead: mirrors the visibility axis, pointing right along the x-axis. */
