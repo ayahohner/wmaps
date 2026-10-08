@@ -192,10 +192,11 @@ input {
   transform: translateX(-0.5px) rotate(45deg); transform-origin: center;
 }
 /* Dashed stage boundaries running the full height of the map and just past
-   the x-axis; dashes start from the bottom so each line ends on a dash. */
+   the x-axis, lighter than the axes; dashes start from the bottom so each
+   line ends on a dash. */
 .axis-x-divider {
   position: absolute; top: 0; bottom: 15.5px; width: 1px;
-  background: repeating-linear-gradient(to top, var(--axis-color) 0 4px, transparent 4px 8px);
+  background: repeating-linear-gradient(to top, #c4c4c8 0 4px, transparent 4px 8px);
 }
 .axis-x-stage { position: absolute; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; }
 .axis-x-label { position: relative; pointer-events: auto; cursor: default; padding: 0 4px; border-radius: 3px; }
