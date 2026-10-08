@@ -11,8 +11,9 @@ see your team's edits and cursors live.
 
 ![Three people mapping a tea shop together in MapTogether, each with a named cursor on the canvas](docs/multiplayer-screenshot.png)
 
-<sub>Three people on the same map. Everyone sees the others' cursors, and every
-edit, on the canvas and in the code, shows up for everyone at once.</sub>
+<sub>Three people on the same map, with a pipeline showing loose-leaf tea and tea
+bags at different stages of evolution. Everyone sees the others' cursors, and
+every edit, on the canvas and in the code, shows up for everyone at once.</sub>
 
 ## Why MapTogether
 
@@ -30,6 +31,9 @@ a picture one person emails around.
   show where everyone is working. Hover the people count to see who's on the map.
 - **Saved automatically.** Maps save as you go, with a status light that only
   turns green once the save is confirmed.
+- **Speaks Wardley.** The evolution axis is marked Genesis, Custom, Product and
+  Commodity; hover a stage to see what it's called for practices, data and
+  knowledge. Pipelines show one need met at several stages of evolution.
 - **Fast.** Edits go directly between browsers (peer to peer), and the canvas
   is drawn with WebGL.
 
@@ -56,14 +60,19 @@ map to get the tea shop above, the classic first Wardley Map. A trimmed-down
 version looks like this:
 
 ```text
-Business [95, 48]
+Business [95, 46]
 Public [95, 72]
 Cup of Tea [80, 62]
-Kettle [36, 26]
-Power [12, 84]
+Tea [55, 73] {
+  Loose Leaf [55, 56]
+  Tea Bags [55, 90]
+}
+Kettle [33, 50]
+Power [10, 86]
 
 Business.Cup of Tea
 Public.Cup of Tea
+Cup of Tea.Tea
 Cup of Tea.Kettle
 Kettle.Power
 ```
@@ -74,7 +83,9 @@ The text syntax is small:
   100: visibility from hidden infrastructure (0) up to the user (100), and
   evolution from genesis (0) across to commodity (100).
 - `needer.needed` draws a dependency between two components.
-- `name [v, e] { child [v, e] ... }` groups components into a pipeline.
+- `name [v, e] { ... }` makes a pipeline: put one child component per line
+  inside the braces, each at its own evolution. Children sit on the pipeline's
+  row, so their visibility is ignored.
 - `// comments` are ignored.
 
 ## Status
