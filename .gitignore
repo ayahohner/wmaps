@@ -16,3 +16,6 @@ yarn-error.log
 
 .quality/
 .wrangler/
+
+# Claude Code worktrees
+.claude/worktrees/
